@@ -11,7 +11,7 @@ Vì bạn muốn đường link có đuôi **/vi/**, dự án của bạn đã c
 
 Sửa từ: **`baseURL = "https://workshop-sample.awsfcaj.com/"`**
 
-Thành: **`baseURL = "https://callmesen.github.io/FCAJ-Internship-Report/"`**
+Thành: **`baseURL = "https://github.com/Quanggatay2005/FCAJ-Internship-Report"`**
 (Hugo sẽ tự động thêm phần /vi/ vào cuối URL dựa trên cấu hình ngôn ngữ bên dưới file).
 
 ## Bước 3: Đưa mã nguồn lên GitHub (Tạo Repository)
@@ -24,7 +24,7 @@ Thành: **`baseURL = "https://callmesen.github.io/FCAJ-Internship-Report/"`**
 git add .
 git commit -m "Báo cáo thực tập AWS FCJ"
 git branch -M main
-git remote add origin https://github.com/callmesen/FCAJ-Internship-Report.git
+git remote add origin https://github.com/Quanggatay2005/FCAJ-Internship-Report.git
 git push -u origin main
 ```
 (Lưu ý: Bạn thay đổi remote URL nếu trước đó project này đã link tới một repo khác bằng lệnh git remote set-url origin https://github.com/callmesen/FCAJ-Internship-Report.git)
