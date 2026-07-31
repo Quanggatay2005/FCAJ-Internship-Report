@@ -38,7 +38,7 @@ The platform addresses these challenges by deploying a complete e-commerce solut
 ### 3. Solution Architecture
 
 The platform is built on a serverless microservices-like architecture on AWS:
-![Picture discription](/images/5-Workshop/architecture.png)
+![Picture discription](/images/5-Workshop/architecture.jpg)
 
 ### AWS Services & Technologies Used
 

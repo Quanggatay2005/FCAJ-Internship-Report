@@ -1,12 +1,12 @@
 ---
-title: "Blog 1: Từ Gợi Ý Tĩnh Đến Real-time Personalization: Hành Trình Với Amazon Personalize"
+title: "Blog 1"
 date: 2024-01-01
 weight: 1
 chapter: false
 pre: " <b> 3.1. </b> "
 ---
 
-
+# Từ Gợi Ý Tĩnh Đến Real-time Personalization: Hành Trình Với Amazon Personalize
 Khi mới xây dựng phần "Sản phẩm gợi ý" cho một trang thương mại điện tử, mình từng nghĩ đơn giản: cứ lấy Top Selling hoặc Trending theo tuần, hiển thị cho tất cả người dùng là xong. Nhưng càng theo dõi số liệu conversion, mình càng nhận ra một sự thật: gợi ý tĩnh không hiểu hành vi cá nhân của từng khách hàng. Người vừa xem giày chạy bộ vẫn bị đề xuất... nồi cơm điện đang bán chạy nhất tuần.
 
 Vấn đề đặt ra là: làm sao chuyển từ "gợi ý giống nhau cho tất cả mọi người" sang gợi ý cá nhân hoá theo thời gian thực, mà team không có sẵn đội ngũ Data Science để tự huấn luyện mô hình Collaborative Filtering hay Deep Learning? Câu trả lời mình chọn là **Amazon Personalize** - dịch vụ managed ML của AWS, vốn dùng chính công nghệ đứng sau hệ thống gợi ý của Amazon.com.
@@ -97,3 +97,6 @@ Dành cho bạn nào muốn đào sâu chi tiết kỹ thuật:
 
 #### Vận hành & Cập nhật dữ liệu:
 - [Simplify Data Management with New APIs in Amazon Personalize (AWS ML Blog)](https://aws.amazon.com/blogs/machine-learning/simplify-data-management-with-new-apis-in-amazon-personalize)      
+
+
+**Bài viết gốc**: [Facebook AWS Study Group FCJ](https://www.facebook.com/groups/awsstudygroupfcj/permalink/2229289067836053/?rdid=PGigWM6loaBLr4ZG#)

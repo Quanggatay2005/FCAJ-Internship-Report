@@ -14,7 +14,7 @@ The system in this workshop addresses that by learning from actual user behaviou
 
 #### Architecture
 
-![Overall architecture](/images/5-Workshop/architecture.png)
+![Overall architecture](/images/5-Workshop/architecture.jpg)
 
 The system splits into two independent paths:
 

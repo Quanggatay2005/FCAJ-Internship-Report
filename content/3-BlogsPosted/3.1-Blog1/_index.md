@@ -1,12 +1,12 @@
 ---
-title: "From Static Recommendations to Real-time Personalization: A Journey with Amazon Personalize"
+title: "Blog 1"
 date: 2024-01-01
 weight: 1
 chapter: false
 pre: " <b> 3.1. </b> "
 ---
 
-### From Static Recommendations to Real-time Personalization: A Journey with Amazon Personalize
+# From Static Recommendations to Real-time Personalization: A Journey with Amazon Personalize
 
 When first building the "Recommended Products" section for an e-commerce site, I thought it was simple: just take the Top Selling or Trending items of the week and display them to all users. But as I tracked conversion metrics, I realized a truth: static recommendations do not understand the individual behavior of each customer. A user who just viewed running shoes would still be recommended... the best-selling rice cooker of the week.
 
@@ -98,3 +98,5 @@ For those who want to dive deeper into technical details:
 
 #### Operations & Data Updates:
 - [Simplify Data Management with New APIs in Amazon Personalize (AWS ML Blog)](https://aws.amazon.com/blogs/machine-learning/simplify-data-management-with-new-apis-in-amazon-personalize)
+
+**Original post**: [Facebook AWS Study Group FCJ](https://www.facebook.com/groups/awsstudygroupfcj/permalink/2229289067836053/?rdid=PGigWM6loaBLr4ZG#)

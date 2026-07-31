@@ -16,7 +16,7 @@ home = [ "HTML", "RSS", "JSON"]
   # Git hub repo link
   editURL = "https://github.com/Quanggatay2005/FCAJ-Internship-Report"
   description = "AWS FCJ Internship Report"
-  author = "[EMAIL_ADDRESS]"
+  author = "Quang Dang"
   showVisitedLinks = true
   disableBreadcrumb = false
   disableNextPrev = false
