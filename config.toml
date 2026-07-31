@@ -1,6 +1,6 @@
 baseURL = "https://quanggatay2005.github.io/FCAJ-Internship-Report/"
 relativeURLs = false
-canonifyURLs = false
+canonifyURLs = true
 defaultContentLanguage = "en"
 
 # Change the default theme to be use when building the site with Hugo
