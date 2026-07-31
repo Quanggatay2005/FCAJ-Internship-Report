@@ -139,57 +139,7 @@ _Conclusion:_ Input data quality significantly impacts model performance over al
 
 ### 9. Improvements and Next Steps
 
-Based on operational reality and scaling requirements, the following architecture is proposed to optimize security, performance, and scalability:
-
-```mermaid
-architecture-beta
-    group client(cloud)[Client & Edge]
-    group api(cloud)[API & Gateway]
-    group compute(cloud)[Microservices - Compute]
-    group data(cloud)[Data & Search Layer]
-    group ai(cloud)[AI & Machine Learning]
-
-    service user(internet)[User Browser/App] in client
-    service waf(server)[AWS WAF] in client
-    service cf(server)[CloudFront] in client
-    service s3(database)[Amazon S3\nFrontend Assets] in client
-
-    service cognito(server)[Amazon Cognito\nAuth & JWT] in api
-    service apigw(server)[API Gateway] in api
-
-    service lambda_user(server)[User Lambda] in compute
-    service lambda_product(server)[Product Lambda] in compute
-    service lambda_order(server)[Order/Cart Lambda] in compute
-    service ecs_clip(server)[Amazon ECS / SageMaker\nVisual Search (CLIP)] in compute
-
-    service ddb(database)[DynamoDB\nOrders, Carts, Users] in data
-    service opensearch(database)[Amazon OpenSearch\nProduct Catalog, Filtering] in data
-    service kinesis(server)[Amazon Kinesis\nEvent Streaming] in data
-
-    service personalize(server)[Amazon Personalize\nRecommendation] in ai
-    
-    user:R --> L:waf
-    waf:R --> L:cf
-    cf:R --> L:s3
-    
-    user:R --> L:cognito
-    user:R --> L:apigw
-    
-    apigw:R --> L:lambda_user
-    apigw:R --> L:lambda_product
-    apigw:R --> L:lambda_order
-    
-    lambda_user:R --> L:ddb
-    lambda_order:R --> L:ddb
-    
-    lambda_product:B --> T:opensearch
-    lambda_product:R --> L:ecs_clip
-    
-    lambda_product:B --> T:personalize
-    
-    user:B --> T:kinesis
-    kinesis:R --> L:personalize
-```
+Based on operational reality and scaling requirements, several AWS services can be added to the system to optimize security, performance, and scalability:
 
 - **Multi-layered Security:** Add AWS WAF in front of CloudFront/API Gateway to mitigate Botnet/DDoS attacks. Delegate user identity and authentication to Amazon Cognito.
 - **Microservices Architecture:** Deconstruct the current monolithic Lambda into domain-specific independent services (User, Product, Order) to reduce blast radius and cold start times.
