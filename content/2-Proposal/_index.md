@@ -5,111 +5,193 @@ weight: 2
 chapter: false
 pre: " <b> 2. </b> "
 ---
-{{% notice warning %}}
-⚠️ **Note:** The information below is for reference purposes only. Please **do not copy verbatim** for your report, including this warning.
-{{% /notice %}}
 
-In this section, you need to summarize the contents of the workshop that you **plan** to conduct.
+# E-Commerce Product Recommendation System on AWS
 
-# IoT Weather Platform for Lab Research
-## A Unified AWS Serverless Solution for Real-Time Weather Monitoring
+## A Personalised Recommendation and Visual Search E-Commerce Platform Built on AWS
 
 ### 1. Executive Summary
-The IoT Weather Platform is designed for the ITea Lab team in Ho Chi Minh City to enhance weather data collection and analysis. It supports up to 5 weather stations, with potential scalability to 10-15, utilizing Raspberry Pi edge devices with ESP32 sensors to transmit data via MQTT. The platform leverages AWS Serverless services to deliver real-time monitoring, predictive analytics, and cost efficiency, with access restricted to 5 lab members via Amazon Cognito.
+
+This project aims to build and deploy a full-stack e-commerce platform equipped with a personalised recommendation engine and visual search capabilities. Designed as part of the **Machine Learning on AWS** course, the platform utilizes AWS Serverless architecture (API Gateway, AWS Lambda, DynamoDB, S3, CloudFront) alongside Amazon Personalize and CLIP-based vector embeddings to deliver tailored shopping experiences and robust e-commerce features.
 
 ### 2. Problem Statement
+
 ### What’s the Problem?
-Current weather stations require manual data collection, becoming unmanageable with multiple units. There is no centralized system for real-time data or analytics, and third-party platforms are costly and overly complex.
+
+Traditional e-commerce platforms often lack real-time personalisation, resulting in lower customer engagement and conversion rates. Furthermore, searching for products using text keywords can be limiting when users only have visual references. High operational overhead and infrastructure management also pose challenges for scaling traditional monolithic e-commerce applications.
 
 ### The Solution
-The platform uses AWS IoT Core to ingest MQTT data, AWS Lambda and API Gateway for processing, Amazon S3 for storage (including a data lake), and AWS Glue Crawlers and ETL jobs to extract, transform, and load data from the S3 data lake to another S3 bucket for analysis. AWS Amplify with Next.js provides the web interface, and Amazon Cognito ensures secure access. Similar to Thingsboard and CoreIoT, users can register new devices and manage connections, though this platform operates on a smaller scale and is designed for private use. Key features include real-time dashboards, trend analysis, and low operational costs.
+
+The platform addresses these challenges by deploying a complete e-commerce solution on AWS Serverless infrastructure:
+
+- **Personalised Recommendations:** Powered by Amazon Personalize (`aws-user-personalization` recipe) to show a "Recommended for You" section on the homepage.
+- **Visual Search:** Implemented using a CLIP model (`@xenova/transformers`) with cosine similarity for image-based product discovery.
+- **Core E-Commerce Suite:** Full support for browsing, filtering, account management, cart operations, vouchers, checkout (COD / Bank Transfer), and product reviews.
+- **Serverless Architecture:** Utilizes React (Vite) hosted on S3 and distributed via CloudFront, Node.js 20 Lambda functions via HTTP API Gateway, and DynamoDB (8 tables) for on-demand database operations.
 
 ### Benefits and Return on Investment
-The solution establishes a foundational resource for lab members to develop a larger IoT platform, serving as a study resource, and provides a data foundation for AI enthusiasts for model training or analysis. It reduces manual reporting for each station via a centralized platform, simplifying management and maintenance, and improves data reliability. Monthly costs are $0.66 USD per the AWS Pricing Calculator, with a 12-month total of $7.92 USD. All IoT equipment costs are covered by the existing weather station setup, eliminating additional development expenses. The break-even period of 6-12 months is achieved through significant time savings from reduced manual work.
+
+- **Enhanced Customer Engagement:** Personalised recommendations improve product discovery and conversion rates.
+- **Cost Efficiency:** Serverless pay-per-use architecture eliminates idle server costs; static assets are cached at the edge via CloudFront.
+- **Scalability & Maintenance:** DynamoDB on-demand capacity and AWS Lambda handle variable traffic seamlessly without manual server provisioning.
 
 ### 3. Solution Architecture
-The platform employs a serverless AWS architecture to manage data from 5 Raspberry Pi-based stations, scalable to 15. Data is ingested via AWS IoT Core, stored in an S3 data lake, and processed by AWS Glue Crawlers and ETL jobs to transform and load it into another S3 bucket for analysis. Lambda and API Gateway handle additional processing, while Amplify with Next.js hosts the dashboard, secured by Cognito. The architecture is detailed below:
 
-![IoT Weather Station Architecture](/images/2-Proposal/edge_architecture.jpeg)
+The platform is built on a serverless microservices-like architecture on AWS:
+![Picture discription](/images/5-Workshop/architecture.png)
 
-![IoT Weather Platform Architecture](/images/2-Proposal/platform_architecture.jpeg)
+### AWS Services & Technologies Used
 
-### AWS Services Used
-- **AWS IoT Core**: Ingests MQTT data from 5 stations, scalable to 15.
-- **AWS Lambda**: Processes data and triggers Glue jobs (two functions).
-- **Amazon API Gateway**: Facilitates web app communication.
-- **Amazon S3**: Stores raw data in a data lake and processed outputs (two buckets).
-- **AWS Glue**: Crawlers catalog data, and ETL jobs transform and load it.
-- **AWS Amplify**: Hosts the Next.js web interface.
-- **Amazon Cognito**: Secures access for lab users.
+- **Frontend:** React 18, Vite, Redux Toolkit, Tailwind CSS hosted on Amazon S3 and distributed via CloudFront.
+- **API Gateway:** HTTP API routing 22 routes to a single AWS Lambda function.
+- **AWS Lambda:** `fcj-api` (Node.js 20) handling business logic, authentication, and database operations.
+- **Amazon DynamoDB:** On-demand capacity mode with 8 tables: `Products`, `Categories`, `Users`, `Sessions`, `Carts`, `Vouchers`, `Reviews`, `Orders`.
+- **Amazon Personalize:** Campaign utilizing `aws-user-personalization` recipe to serve personalized product lists.
+- **Visual Search Engine:** CLIP model (`@xenova/transformers`) + cosine similarity running locally due to Lambda package size constraints.
 
 ### Component Design
-- **Edge Devices**: Raspberry Pi collects and filters sensor data, sending it to IoT Core.
-- **Data Ingestion**: AWS IoT Core receives MQTT messages from the edge devices.
-- **Data Storage**: Raw data is stored in an S3 data lake; processed data is stored in another S3 bucket.
-- **Data Processing**: AWS Glue Crawlers catalog the data, and ETL jobs transform it for analysis.
-- **Web Interface**: AWS Amplify hosts a Next.js app for real-time dashboards and analytics.
-- **User Management**: Amazon Cognito manages user access, allowing up to 5 active accounts.
+
+- **Frontend Hosting:** S3 bucket stores compiled static assets; CloudFront provides CDN caching and secure HTTPS access.
+- **Business API:** Lambda processes request payloads, handles password hashing via `scrypt`, manages token sessions, and interacts with DynamoDB.
+- **Recommendation Pipeline:** Lambda queries the Amazon Personalize Campaign endpoint to retrieve tailored product IDs for logged-in users.
+- **Image Search Pipeline:** Vectors generated from product images are cached in `vector-cache.json` and matched against user input image URLs via cosine similarity.
 
 ### 4. Technical Implementation
+
 **Implementation Phases**
-This project has two parts—setting up weather edge stations and building the weather platform—each following 4 phases:
-- Build Theory and Draw Architecture: Research Raspberry Pi setup with ESP32 sensors and design the AWS serverless architecture (1 month pre-internship)
-- Calculate Price and Check Practicality: Use AWS Pricing Calculator to estimate costs and adjust if needed (Month 1).
-- Fix Architecture for Cost or Solution Fit: Tweak the design (e.g., optimize Lambda with Next.js) to stay cost-effective and usable (Month 2).
-- Develop, Test, and Deploy: Code the Raspberry Pi setup, AWS services with CDK/SDK, and Next.js app, then test and release to production (Months 2-3).
+
+1. **Infrastructure & Database Setup:** DDL/Schema design for 8 DynamoDB tables; configuring S3, CloudFront, API Gateway, and IAM execution roles.
+2. **Backend & Frontend Development:** Writing 22 API routes in `backend/index.mjs`, creating React components, and integrating state management with Redux Toolkit.
+3. **ML & AI Integration:** Preparing interaction datasets (`ml_recommendation_dataset.csv`), training Amazon Personalize models, and embedding CLIP visual search.
+4. **Testing, Deployment & Evaluation:** Running Playwright end-to-end automated tests, deploying code to Lambda & S3/CloudFront, and evaluating model metrics (v1 vs. v2 dataset iterations).
 
 **Technical Requirements**
-- Weather Edge Station: Sensors (temperature, humidity, rainfall, wind speed), a microcontroller (ESP32), and a Raspberry Pi as the edge device. Raspberry Pi runs Raspbian, handles Docker for filtering, and sends 1 MB/day per station via MQTT over Wi-Fi.
-- Weather Platform: Practical knowledge of AWS Amplify (hosting Next.js), Lambda (minimal use due to Next.js), AWS Glue (ETL), S3 (two buckets), IoT Core (gateway and rules), and Cognito (5 users). Use AWS CDK/SDK to code interactions (e.g., IoT Core rules to S3). Next.js reduces Lambda workload for the fullstack web app.
+
+- **Node.js Environment:** Node.js 20+ required for development and runtime execution.
+- **AWS Credentials & Permissions:** IAM user/role with read/write access to 8 DynamoDB tables and invoke access to Amazon Personalize campaign.
+- **Security:** Strict separation of environment variables (`.env`), passwords hashed with `scrypt` and compared via `timingSafeEqual`, S3 bucket kept private with CloudFront OAC.
 
 ### 5. Timeline & Milestones
-**Project Timeline**
-- Pre-Internship (Month 0): 1 month for planning and old station review.
-- Internship (Months 1-3): 3 months.
-    - Month 1: Study AWS and upgrade hardware.
-    - Month 2: Design and adjust architecture.
-    - Month 3: Implement, test, and launch.
-- Post-Launch: Up to 1 year for research.
 
-### 6. Budget Estimation
-You can find the budget estimation on the [AWS Pricing Calculator](https://calculator.aws/#/estimate?id=621f38b12a1ef026842ba2ddfe46ff936ed4ab01).  
-Or you can download the [Budget Estimation File](../attachments/budget_estimation.pdf).
+- **Phase 1: Architecture & Data Engineering**
+  - Design AWS architecture and IAM roles.
+  - Build synthetic interaction data generation pipelines (handling power-law distribution, conversion funnels).
+- **Phase 2: Core Development**
+  - Implement 22 API routes in Lambda (`backend/index.mjs`).
+  - Build React frontend components (Catalog, Product Details, Cart, Checkout, User Account).
+- **Phase 3: Machine Learning & Personalization**
+  - Train and deploy Amazon Personalize campaign (`aws-user-personalization`).
+  - Implement CLIP model visual search and vector caching.
+- **Phase 4: Integration, Testing & Deployment**
+  - End-to-end Playwright automated test scripts for checkout flows.
+  - Deploy frontend to S3/CloudFront and backend to AWS Lambda.
 
-### Infrastructure Costs
-- AWS Services:
-    - AWS Lambda: $0.00/month (1,000 requests, 512 MB storage).
-    - S3 Standard: $0.15/month (6 GB, 2,100 requests, 1 GB scanned).
-    - Data Transfer: $0.02/month (1 GB inbound, 1 GB outbound).
-    - AWS Amplify: $0.35/month (256 MB, 500 ms requests).
-    - Amazon API Gateway: $0.01/month (2,000 requests).
-    - AWS Glue ETL Jobs: $0.02/month (2 DPUs).
-    - AWS Glue Crawlers: $0.07/month (1 crawler).
-    - MQTT (IoT Core): $0.08/month (5 devices, 45,000 messages).
+### 6. Budget Estimation & Model Metrics
 
-Total: $0.7/month, $8.40/12 months
+**Estimated Monthly AWS Cost (Low-Traffic / Course Project Scale)**
 
-- Hardware: $265 one-time (Raspberry Pi 5 and sensors).
+| AWS Service                                | Usage Assumption                                 | Estimated Cost (USD/month) |
+| ------------------------------------------ | ------------------------------------------------ | -------------------------- |
+| **AWS Lambda** (`fcj-api`)                 | ~1M invocations, 512MB, ~200ms avg               | $0.20 – $1.00              |
+| **API Gateway (HTTP API)**                 | ~1M requests                                     | ~$1.00                     |
+| **Amazon DynamoDB** (8 tables, On-demand)  | ~1M read/write request units                     | $5 – $10                   |
+| **Amazon S3** (frontend hosting)           | ~5 GB storage + PUT/GET requests                 | ~$0.15                     |
+| **Amazon CloudFront**                      | ~50 GB data transfer out                         | ~$4.25                     |
+| **Amazon Personalize (Campaign)**          | 1 campaign, minimum TPS, running 24/7 (~730 hrs) | **$150 – $220**            |
+| **Amazon Personalize (Solution Training)** | One-time/periodic retraining (~2–4 hrs/session)  | ~$0.50 – $1.00 per run     |
+| **CloudWatch Logs & Monitoring**           | Basic logging tier                               | ~$1.00                     |
+| **Total (steady-state, monthly)**          |                                                  | **≈ $160 – $240 / month**  |
+
+> **Note:** Amazon Personalize's always-on Campaign is by far the dominant cost driver, since it charges an hourly minimum TPS rate regardless of actual traffic. For a course/demo project, this cost can be significantly reduced by deleting the Campaign when not actively demoing, or by only re-creating it during evaluation/testing windows. Lambda, API Gateway, DynamoDB, S3, and CloudFront costs remain minimal at this traffic scale thanks to the serverless pay-per-use pricing model.
+
+**Training & Dataset Iteration Results**
+The interaction dataset was engineered to simulate realistic shopping behavior (conversion funnels, time-of-day dynamics, power-law distribution):
+
+| Metric          | Dataset v1 | Dataset v2 |
+| --------------- | ---------- | ---------- |
+| **Precision@5** | 0.0889     | 0.4348     |
+| **NDCG@10**     | 0.1799     | 0.6512     |
+| **MRR@25**      | 0.1216     | 0.7130     |
+| **Coverage**    | 0.8218     | 0.9505     |
+
+_Conclusion:_ Input data quality significantly impacts model performance over algorithm selection.
 
 ### 7. Risk Assessment
+
 #### Risk Matrix
-- Network Outages: Medium impact, medium probability.
-- Sensor Failures: High impact, low probability.
-- Cost Overruns: Medium impact, low probability.
+
+- **Data Feedback Loop Gap:** High impact, medium probability (User interactions on web are not currently fed back automatically to retrain the model).
+- **Package Size Limits:** Medium impact, high probability (CLIP model exceeds Lambda limits, restricting image search to local environments).
+- **CloudFront Cache Stale Content:** Low impact, high probability (Requires mandatory invalidations `/*` upon new deployments).
+- **Database Bottleneck (Complex Queries):** Medium impact, high probability (DynamoDB is not optimized for full-text search or complex product filtering).
 
 #### Mitigation Strategies
-- Network: Local storage on Raspberry Pi with Docker.
-- Sensors: Regular checks and spares.
-- Cost: AWS budget alerts and optimization.
 
-#### Contingency Plans
-- Revert to manual methods if AWS fails.
-- Use CloudFormation for cost-related rollbacks.
+- **Data Loop:** Plan automated data logging pipelines from DynamoDB/S3 back into Amazon Personalize.
+- **Model Deployment:** Explore AWS ECS/Fargate or Sagemaker Endpoints for hosting heavy machine learning models like CLIP.
+- **Deployment Automation:** Script deployment processes to include automatic CloudFront cache invalidation.
+- **Search Optimization:** Integrate Amazon OpenSearch to handle complex filtering and text search queries.
 
 ### 8. Expected Outcomes
-#### Technical Improvements: 
-Real-time data and analytics replace manual processes.  
-Scalable to 10-15 stations.
-#### Long-term Value
-1-year data foundation for AI research.  
-Reusable for future projects.
+
+- **Technical Improvements:** A fully operational, serverless e-commerce platform with automated E2E testing (Playwright) and sub-second personal recommendations.
+- **Long-term Value:** A scalable foundation for machine learning deployment on AWS that can be extended with closed-loop real-time retraining and server-side visual search.
+
+### 9. Improvements and Next Steps
+
+Based on operational reality and scaling requirements, the following architecture is proposed to optimize security, performance, and scalability:
+
+```mermaid
+architecture-beta
+    group client(cloud)[Client & Edge]
+    group api(cloud)[API & Gateway]
+    group compute(cloud)[Microservices - Compute]
+    group data(cloud)[Data & Search Layer]
+    group ai(cloud)[AI & Machine Learning]
+
+    service user(internet)[User Browser/App] in client
+    service waf(server)[AWS WAF] in client
+    service cf(server)[CloudFront] in client
+    service s3(database)[Amazon S3\nFrontend Assets] in client
+
+    service cognito(server)[Amazon Cognito\nAuth & JWT] in api
+    service apigw(server)[API Gateway] in api
+
+    service lambda_user(server)[User Lambda] in compute
+    service lambda_product(server)[Product Lambda] in compute
+    service lambda_order(server)[Order/Cart Lambda] in compute
+    service ecs_clip(server)[Amazon ECS / SageMaker\nVisual Search (CLIP)] in compute
+
+    service ddb(database)[DynamoDB\nOrders, Carts, Users] in data
+    service opensearch(database)[Amazon OpenSearch\nProduct Catalog, Filtering] in data
+    service kinesis(server)[Amazon Kinesis\nEvent Streaming] in data
+
+    service personalize(server)[Amazon Personalize\nRecommendation] in ai
+    
+    user:R --> L:waf
+    waf:R --> L:cf
+    cf:R --> L:s3
+    
+    user:R --> L:cognito
+    user:R --> L:apigw
+    
+    apigw:R --> L:lambda_user
+    apigw:R --> L:lambda_product
+    apigw:R --> L:lambda_order
+    
+    lambda_user:R --> L:ddb
+    lambda_order:R --> L:ddb
+    
+    lambda_product:B --> T:opensearch
+    lambda_product:R --> L:ecs_clip
+    
+    lambda_product:B --> T:personalize
+    
+    user:B --> T:kinesis
+    kinesis:R --> L:personalize
+```
+
+- **Multi-layered Security:** Add AWS WAF in front of CloudFront/API Gateway to mitigate Botnet/DDoS attacks. Delegate user identity and authentication to Amazon Cognito.
+- **Microservices Architecture:** Deconstruct the current monolithic Lambda into domain-specific independent services (User, Product, Order) to reduce blast radius and cold start times.
+- **Query & Search Optimization:** Integrate Amazon OpenSearch alongside DynamoDB to fulfill complex product filtering and text-search queries. Host the CLIP model on Amazon ECS or SageMaker.
+- **Real-time Feedback Loop:** Utilize Amazon Kinesis Data Streams with Amazon Personalize Event Tracker to capture and ingest user interaction data in real time.

@@ -6,17 +6,9 @@ chapter: false
 pre: " <b> 3. </b> "
 ---
 
-{{% notice warning %}}
-⚠️ **Note:** The information below is for reference purposes only. Please **do not copy verbatim** for your own report, including this warning.
-{{% /notice %}}
+###  [Blog 1 - From Static Recommendations to Real-time Personalization: A Journey with Amazon Personalize](3.1-Blog1/)
 
-This section will list and introduce the blogs you have posted to [AWS Study Group](https://www.facebook.com/groups/awsstudygroupfcj). For example:
-
-###  [Blog 1 - SESSION POLICIES IN AMAZON EKS POD IDENTITY](3.1-Blog1/)
-This blog introduces the newly added session policies feature in Amazon EKS Pod Identity, which allows you to narrow IAM permissions flexibly and precisely for each pod without needing to create multiple separate IAM roles. This is an important step forward that helps apply the principle of least privilege more effectively in large-scale Kubernetes environments.
-
-###  [Blog 2 - ...](3.2-Blog2/)
-This blog introduces the newly added session policies feature in Amazon EKS Pod Identity, which allows you to narrow IAM permissions flexibly and precisely for each pod without needing to create multiple separate IAM roles. This is an important step forward that helps apply the principle of least privilege more effectively in large-scale Kubernetes environments.
-
-###  [Blog 3 - ...](3.3-Blog3/)
-This blog introduces the newly added session policies feature in Amazon EKS Pod Identity, which allows you to narrow IAM permissions flexibly and precisely for each pod without needing to create multiple separate IAM roles. This is an important step forward that helps apply the principle of least privilege more effectively in large-scale Kubernetes environments.
+This article shares practical experiences in migrating from a static product recommendation system to real-time personalization.
+By using Amazon Personalize, development teams can build robust Machine Learning models without needing Data Science experts.
+The content delves into 4 core implementation steps: data preparation (Interactions, Users, Items), creating a Dataset Group, selecting the appropriate Recipe, and deploying a Campaign.
+As a result, the system helps optimize customer experience, increase conversion rates, and automate the model training lifecycle.
