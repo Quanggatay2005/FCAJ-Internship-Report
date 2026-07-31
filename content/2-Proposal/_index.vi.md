@@ -37,7 +37,7 @@ _Lợi ích và hoàn vốn đầu tư (ROI)_
 
 Nền tảng sử dụng kiến trúc Serverless trên AWS để xử lý toàn bộ luồng nghiệp vụ và gợi ý AI:
 
-![Mô tả hình ảnh](../images/5-Workshop/architecture.png)
+![Mô tả hình ảnh](/images/5-Workshop/architecture.png)
 
 _Dịch vụ AWS & Công nghệ sử dụng_
 
