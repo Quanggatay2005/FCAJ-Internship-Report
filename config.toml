@@ -1,4 +1,4 @@
-baseURL = "https://Quanggatay2005.github.io/FCAJ-Internship-Report/"
+baseURL = "https://quanggatay2005.github.io/FCAJ-Internship-Report/"
 relativeURLs = false
 canonifyURLs = false
 defaultContentLanguage = "en"
@@ -15,7 +15,7 @@ home = [ "HTML", "RSS", "JSON"]
   themeVariant = "workshop"
   # Git hub repo link
   editURL = "https://github.com/Quanggatay2005/FCAJ-Internship-Report"
-  description = ""
+  description = "AWS FCJ Internship Report"
   author = "[EMAIL_ADDRESS]"
   showVisitedLinks = true
   disableBreadcrumb = false
