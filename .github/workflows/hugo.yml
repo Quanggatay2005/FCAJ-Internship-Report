@@ -1,74 +1,121 @@
-# Sample workflow for building and deploying a Hugo site to GitHub Pages
-name: Deploy Hugo site to Pages
+name: Deploy Hugo site and Build PDF Reports
 
 on:
-  # Runs on pushes targeting the default branch
   push:
-    branches: ["main"]
+    branches:
+      - main
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
-
-# Default to bash
-defaults:
-  run:
-    shell: bash
+  contents: write
 
 jobs:
-  # Build job
-  build:
+  build-deploy:
     runs-on: ubuntu-latest
-    env:
-      HUGO_VERSION: 0.128.0
     steps:
-      - name: Install Hugo CLI
-        run: |
-          wget -O ${{ runner.temp }}/hugo.deb https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.deb \
-          && sudo dpkg -i ${{ runner.temp }}/hugo.deb
-      - name: Install Dart Sass
-        run: sudo snap install dart-sass
-      - name: Checkout
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v2
+        with:
+          hugo-version: "0.134.3"
+          extended: true
+
+      - name: Build website
+        run: hugo --minify
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          publish_branch: gh-pages
+          force_orphan: true
+
+  build-pdf:
+    runs-on: ubuntu-latest
+    # needs: build-deploy
+    steps:
+      - name: Checkout source code
         uses: actions/checkout@v4
         with:
-          submodules: recursive
-      - name: Setup Pages
-        id: pages
-        uses: actions/configure-pages@v5
-      - name: Install Node.js dependencies
-        run: "[[ -f package-lock.json || -f npm-shrinkwrap.json ]] && npm ci || true"
-      - name: Build with Hugo
-        env:
-          HUGO_CACHEDIR: ${{ runner.temp }}/hugo_cache
-          HUGO_ENVIRONMENT: production
-        run: |
-          hugo \
-            --minify \
-            --baseURL "${{ steps.pages.outputs.base_url }}/"
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./public
+          submodules: true
 
-  # Deployment job
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install TeX Live and pandoc
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            texlive-latex-recommended \
+            texlive-latex-extra \
+            texlive-fonts-recommended \
+            texlive-lang-other \
+            latexmk \
+            pandoc
+
+      - name: Verify LaTeX packages
+        run: |
+          echo "=== Checking key packages ==="
+          for pkg in vntex mathptmx fancyhdr mdframed pdfpages float listings; do
+            if kpsewhich ${pkg}.sty > /dev/null 2>&1; then
+              echo "  $pkg: found"
+            else
+              echo "  $pkg: NOT FOUND"
+            fi
+          done
+
+      - name: Install Python dependencies
+        run: pip install pyyaml
+
+      - name: Convert Hugo content to LaTeX
+        run: python3 scripts/convert_hugo_to_latex.py
+
+      - name: Compile Vietnamese PDF
+        working-directory: report
+        run: |
+          latexmk -pdf -interaction=nonstopmode main.tex
+          latexmk -pdf -interaction=nonstopmode main.tex
+          latexmk -pdf -interaction=nonstopmode main.tex
+          cp main.pdf ../report_vn.pdf
+
+      - name: Compile English PDF
+        working-directory: report
+        run: |
+          latexmk -pdf -interaction=nonstopmode main_en.tex
+          latexmk -pdf -interaction=nonstopmode main_en.tex
+          latexmk -pdf -interaction=nonstopmode main_en.tex
+          cp main_en.pdf ../report_en.pdf
+      
+      - name: Package LaTeX source
+        run: |
+          zip -r latex_source.zip report scripts content config.toml \
+            -x "report/*.aux" \
+            -x "report/*.log" \
+            -x "report/*.out" \
+            -x "report/*.toc" \
+            -x "report/*.fls" \
+            -x "report/*.fdb_latexmk" \
+            -x "report/*.pdf"
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: latest
+          name: "Latest Internship Reports"
+          body: |
+            ## Internship Report PDFs
+
+            Automated PDF generation from Hugo content on push to `main`.
+
+            - **Vietnamese**: `report_vn.pdf`
+            - **English**: `report_en.pdf`
+            - **LaTeX source**: `latex_source.zip`
+          artifacts: "report_vn.pdf,report_en.pdf,latex_source.zip"
+          allowUpdates: true
+          removeArtifacts: true
+          makeLatest: true
+          token: ${{ secrets.GITHUB_TOKEN }}
