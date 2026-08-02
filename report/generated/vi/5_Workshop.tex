@@ -1,0 +1,93 @@
+\vspace{0.5em}\noindent\textbf{Xây dựng hệ gợi ý sản phẩm thương mại điện tử không máy chủ
+trên
+AWS}\par
+
+\vspace{0.5em}\noindent\textbf{Tổng quan}\par
+
+Trong workshop này, bạn sẽ xây dựng một website thương mại điện tử hoàn
+chỉnh có tích hợp hệ thống gợi ý sản phẩm cá nhân hoá, triển khai toàn
+bộ theo kiến trúc \textbf{serverless} trên AWS.
+
+Điểm khác biệt của hệ thống này so với một website bán hàng thông thường
+là mỗi người dùng đăng nhập sẽ nhìn thấy một danh sách sản phẩm gợi ý
+khác nhau, sinh ra từ mô hình học máy của \textbf{Amazon Personalize}
+dựa trên hành vi duyệt và mua hàng, thay vì sắp xếp cứng theo lượt bán.
+
+Sau khi hoàn thành, bạn sẽ có một hệ thống chạy thật trên Internet với
+chi phí gần như bằng không khi không có lưu lượng truy cập.
+
+\vspace{0.5em}\noindent\textbf{Bạn sẽ học được
+gì}\par
+
+\begin{itemize}
+\tightlist
+\item
+  Thiết kế kiến trúc serverless tách biệt luồng nội dung tĩnh và luồng
+  dữ liệu động
+\item
+  Cấu hình CloudFront với Origin Access Control để bảo vệ bucket S3 khỏi
+  truy cập trực tiếp
+\item
+  Thiết kế bảng DynamoDB theo mẫu truy vấn, dùng khoá tổ hợp để tránh
+  Scan toàn bảng
+\item
+  Áp dụng nguyên tắc quyền tối thiểu khi tạo IAM role
+\item
+  Huấn luyện và triển khai mô hình gợi ý bằng Amazon Personalize
+\item
+  Thiết lập cảnh báo bằng CloudWatch Alarm
+\item
+  Dọn dẹp tài nguyên đúng cách để tránh phát sinh chi phí
+\end{itemize}
+
+\vspace{0.5em}\noindent\textbf{Dịch vụ AWS sử
+dụng}\par
+
+{\def\LTcaptype{none} % do not increment counter
+\begingroup
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+Dịch vụ & Vai trò trong hệ thống \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Amazon S3 & Lưu file tĩnh của giao diện và bộ dữ liệu huấn luyện \\
+Amazon CloudFront & Phân phối giao diện từ điểm biên, cung cấp HTTPS \\
+Amazon API Gateway & Cổng vào cho toàn bộ lời gọi API \\
+AWS Lambda & Xử lý logic nghiệp vụ \\
+Amazon DynamoDB & Lưu dữ liệu sản phẩm, người dùng, đơn hàng \\
+Amazon Personalize & Huấn luyện và phục vụ mô hình gợi ý \\
+AWS IAM & Phân quyền giữa các dịch vụ \\
+Amazon CloudWatch & Ghi log và cảnh báo \\
+\end{longtable}
+\endgroup
+}
+
+\vspace{0.5em}\noindent\textbf{Nội dung}\par
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \href{5.1-Overview/}{Tổng quan và kiến trúc}
+\item
+  \href{5.2-Prerequisite/}{Chuẩn bị}
+\item
+  \href{5.3-Frontend/}{Triển khai lớp giao diện}
+\item
+  \href{5.4-Database/}{Tạo cơ sở dữ liệu}
+\item
+  \href{5.5-Backend/}{Triển khai lớp API}
+\item
+  \href{5.6-Personalize/}{Xây dựng hệ gợi ý}
+\item
+  \href{5.7-Monitoring/}{Giám sát và cảnh báo}
+\item
+  \href{5.8-Testing/}{Kiểm thử toàn luồng}
+\item
+  \href{5.9-Cleanup/}{Dọn dẹp tài nguyên}
+\end{enumerate}

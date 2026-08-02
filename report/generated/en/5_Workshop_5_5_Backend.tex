@@ -1,0 +1,265 @@
+This section creates the brain of the system: one Lambda function
+handling all business logic, and an API Gateway as the entry point.
+
+\textbf{Security Note (Auth):} In the scope of this workshop, password
+hashing and user management logic are coded directly within the API so
+you can easily visualize the data flow. In a real-world Production
+environment, you should delegate this entire functionality to
+\textbf{Amazon Cognito} to meet security standards.
+
+Order matters: \textbf{IAM role first, then Lambda, then API Gateway}.
+Because Lambda needs the role at creation time, and API Gateway needs
+the Lambda to already exist.
+
+\vspace{0.5em}\noindent\textbf{Step 1. Create an IAM role with least
+privilege}\par
+
+Lambda needs read/write access to DynamoDB and permission to call
+Personalize. The quickest option would be attaching
+\texttt{AdministratorAccess}, but that is a bad habit: if your code has
+a vulnerability, an attacker gains the whole account.
+
+We grant only what is needed.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Open the \href{https://console.aws.amazon.com/iam/home\#/roles}{IAM
+  console}, choose \textbf{Roles} then \textbf{Create role}
+\item
+  \textbf{Trusted entity type}: AWS service. \textbf{Use case}: Lambda.
+  Choose \textbf{Next}
+\item
+  Search for and select \texttt{AWSLambdaBasicExecutionRole} ---
+  permission to write CloudWatch logs
+\item
+  Choose \textbf{Next}, name it \texttt{fcj-recsys-lambda-role}, choose
+  \textbf{Create role}
+\end{enumerate}
+
+Now add the specific permissions for DynamoDB and Personalize:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{4}
+\tightlist
+\item
+  Open the new role, choose \textbf{Add permissions} then \textbf{Create
+  inline policy}
+\item
+  Switch to the \textbf{JSON} tab and paste the following (replace
+  \texttt{\textless{}ACCOUNT-ID\textgreater{}} with your account
+  number):
+\end{enumerate}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{\{}
+  \DataTypeTok{"Version"}\FunctionTok{:} \StringTok{"2012{-}10{-}17"}\FunctionTok{,}
+  \DataTypeTok{"Statement"}\FunctionTok{:} \OtherTok{[}
+    \FunctionTok{\{}
+      \DataTypeTok{"Effect"}\FunctionTok{:} \StringTok{"Allow"}\FunctionTok{,}
+      \DataTypeTok{"Action"}\FunctionTok{:} \OtherTok{[}
+        \StringTok{"dynamodb:GetItem"}\OtherTok{,} \StringTok{"dynamodb:PutItem"}\OtherTok{,} \StringTok{"dynamodb:UpdateItem"}\OtherTok{,}
+        \StringTok{"dynamodb:DeleteItem"}\OtherTok{,} \StringTok{"dynamodb:Query"}\OtherTok{,} \StringTok{"dynamodb:Scan"}\OtherTok{,}
+        \StringTok{"dynamodb:BatchGetItem"}\OtherTok{,} \StringTok{"dynamodb:BatchWriteItem"}
+      \OtherTok{]}\FunctionTok{,}
+      \DataTypeTok{"Resource"}\FunctionTok{:} \StringTok{"arn:aws:dynamodb:ap{-}southeast{-}1:\textless{}ACCOUNT{-}ID\textgreater{}:table/*"}
+    \FunctionTok{\}}\OtherTok{,}
+    \FunctionTok{\{}
+      \DataTypeTok{"Effect"}\FunctionTok{:} \StringTok{"Allow"}\FunctionTok{,}
+      \DataTypeTok{"Action"}\FunctionTok{:} \StringTok{"personalize:GetRecommendations"}\FunctionTok{,}
+      \DataTypeTok{"Resource"}\FunctionTok{:} \StringTok{"*"}
+    \FunctionTok{\}}
+  \OtherTok{]}
+\FunctionTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{6}
+\tightlist
+\item
+  Name the policy \texttt{fcj-recsys-lambda-policy} and choose
+  \textbf{Create policy}
+\end{enumerate}
+
+Get your Account ID with
+\texttt{aws\ sts\ get-caller-identity\ -\/-query\ Account\ -\/-output\ text}
+
+\vspace{0.5em}\noindent\textbf{Step 2. Package the source
+code}\par
+
+Lambda needs a zip file containing your code and its dependencies:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{cd}\NormalTok{ backend}
+\ExtensionTok{npm}\NormalTok{ install }\AttributeTok{{-}{-}production}
+\FunctionTok{zip} \AttributeTok{{-}r}\NormalTok{ ../function.zip index.mjs node\_modules}
+\end{Highlighting}
+\end{Shaded}
+
+\vspace{0.5em}\noindent\textbf{Step 3. Create the Lambda
+function}\par
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Open the
+  \href{https://ap-southeast-1.console.aws.amazon.com/lambda/home?region=ap-southeast-1}{Lambda
+  console}
+\item
+  Choose \textbf{Create function}
+\item
+  Fill in:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{Function name}: \texttt{fcj-recsys-api}
+  \item
+    \textbf{Runtime}: \textbf{Node.js 20.x}
+  \item
+    \textbf{Architecture}: x86\_64
+  \item
+    \textbf{Execution role}: choose \textbf{Use an existing role},
+    select \texttt{fcj-recsys-lambda-role}
+  \end{itemize}
+\item
+  Choose \textbf{Create function}
+\item
+  On the \textbf{Code} tab, choose \textbf{Upload from} then
+  \textbf{.zip file}, and upload \texttt{function.zip}
+\item
+  Go to \textbf{Runtime settings}, choose \textbf{Edit}, set
+  \textbf{Handler} to \texttt{index.handler}
+\end{enumerate}
+
+\begin{figure}
+\centering
+\pandocbounded{\includegraphics[keepaspectratio,alt={Create Lambda}]{5-Workshop/5.5/create-lambda.png}}
+\caption{Create Lambda}
+\end{figure}
+
+\vspace{0.5em}\noindent\textbf{Step 4. Increase the
+timeout}\par
+
+By default Lambda stops after 3 seconds, which is not enough when
+calling Personalize.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Open the \textbf{Configuration} tab, choose \textbf{General
+  configuration}, choose \textbf{Edit}
+\item
+  Set \textbf{Timeout} to \texttt{30} seconds and \textbf{Memory} to
+  \texttt{512} MB
+\item
+  Choose \textbf{Save}
+\end{enumerate}
+
+\vspace{0.5em}\noindent\textbf{Step 5. Create the HTTP
+API}\par
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Open the
+  \href{https://ap-southeast-1.console.aws.amazon.com/apigateway/main/apis?region=ap-southeast-1}{API
+  Gateway console}
+\item
+  In the \textbf{HTTP API} box, choose \textbf{Build}
+\item
+  Choose \textbf{Add integration}, type \textbf{Lambda}, and select the
+  \texttt{fcj-recsys-api} function
+\item
+  \textbf{API name}: \texttt{fcj-recsys-api}, choose \textbf{Next}
+\item
+  Under \textbf{Configure routes}, define a catch-all route:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{Method}: \texttt{ANY}
+  \item
+    \textbf{Resource path}: \texttt{/\{proxy+\}}
+  \item
+    \textbf{Integration target}: the Lambda function you selected
+  \end{itemize}
+\item
+  Choose \textbf{Next}, keep the \texttt{\$default} stage with
+  \textbf{Auto-deploy} enabled, choose \textbf{Create}
+\end{enumerate}
+
+The \texttt{/\{proxy+\}} route sends every path to the same Lambda,
+letting the code route internally. This keeps API Gateway configuration
+simple, at the cost of moving routing into the code. With 22 routes,
+that is a reasonable trade-off.
+
+\vspace{0.5em}\noindent\textbf{Step 6. Enable CORS}\par
+
+The frontend runs on a CloudFront domain while the API sits on a
+different one. Browsers will block the calls unless CORS is declared.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  In your API, choose \textbf{CORS} in the left menu, then
+  \textbf{Configure}
+\item
+  Set:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{Access-Control-Allow-Origin}: \texttt{*}
+  \item
+    \textbf{Access-Control-Allow-Headers}:
+    \texttt{content-type,\ authorization}
+  \item
+    \textbf{Access-Control-Allow-Methods}:
+    \texttt{GET,\ POST,\ PUT,\ DELETE,\ OPTIONS}
+  \end{itemize}
+\item
+  Choose \textbf{Save}
+\end{enumerate}
+
+CORS errors only appear in the browser console; testing with
+\texttt{curl} still works fine. If the interface reports it cannot reach
+the server while \texttt{curl} succeeds, press F12 and check the Console
+tab first.
+
+\vspace{0.5em}\noindent\textbf{Step 7. Connect the frontend to the
+API}\par
+
+Copy the \textbf{Invoke URL} from the API detail page, then go back to
+the frontend folder:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{cd}\NormalTok{ frontend}
+\BuiltInTok{echo} \StringTok{"VITE\_API\_BASE\_URL=https://xxxxx.execute{-}api.ap{-}southeast{-}1.amazonaws.com"} \OperatorTok{\textgreater{}}\NormalTok{ .env}
+\ExtensionTok{npm}\NormalTok{ run build}
+\ExtensionTok{aws}\NormalTok{ s3 sync dist/ s3://fcj{-}recsys{-}frontend{-}}\OperatorTok{\textless{}}\NormalTok{your{-}name}\OperatorTok{\textgreater{}}\NormalTok{/ }\AttributeTok{{-}{-}delete}
+\ExtensionTok{aws}\NormalTok{ cloudfront create{-}invalidation }\AttributeTok{{-}{-}distribution{-}id} \OperatorTok{\textless{}}\NormalTok{YOUR{-}ID}\OperatorTok{\textgreater{}}\NormalTok{ {-}{-}paths }\StringTok{"/*"}
+\end{Highlighting}
+\end{Shaded}
+
+\vspace{0.5em}\noindent\textbf{Verify}\par
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{curl}\NormalTok{ https://xxxxx.execute{-}api.ap{-}southeast{-}1.amazonaws.com/products}
+\end{Highlighting}
+\end{Shaded}
+
+A JSON list of products means success. Reload the CloudFront page and
+products should now appear.

@@ -1,0 +1,173 @@
+The system uses 8 DynamoDB tables. Before creating them, there is one
+fundamental difference from relational databases worth understanding.
+
+\vspace{0.5em}\noindent\textbf{Design around access
+patterns}\par
+
+With a relational database you normalise the data first and write
+queries later. With DynamoDB it is the other way round: you decide how
+you will query first, then design tables to serve exactly those queries.
+
+Here, the first six tables only ever need a lookup by a single key. The
+last two are different:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Reviews}: needs \emph{all reviews for one product}
+\item
+  \textbf{Orders}: needs \emph{all orders for one user}
+\end{itemize}
+
+With a single key, fetching those records would require a \textbf{Scan}
+that reads the entire table and filters. That is slow and expensive,
+since DynamoDB bills by the volume of data read.
+
+The solution is a \textbf{composite key} made of a partition key and a
+sort key. That lets you use \textbf{Query}, which reads only the
+partition you need.
+
+{\def\LTcaptype{none} % do not increment counter
+\begingroup
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{longtable}[]{@{}llll@{}}
+\toprule\noalign{}
+Table & Partition key & Sort key & Contents \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Products & \texttt{id} & --- & Product information \\
+Categories & \texttt{id} & --- & Categories \\
+Users & \texttt{id} & --- & Accounts, hashed passwords \\
+Sessions & \texttt{token} & --- & Login sessions \\
+Carts & \texttt{userId} & --- & Shopping carts \\
+Vouchers & \texttt{code} & --- & Discount codes \\
+Reviews & \texttt{productId} & \texttt{id} & Product reviews \\
+Orders & \texttt{userId} & \texttt{id} & Orders \\
+\end{longtable}
+\endgroup
+}
+
+\textbf{Production Note:} DynamoDB is highly suitable for high-speed
+transactional workflows (like shopping carts and orders). However, for
+complex product search and filtering queries (such as searching by price
+range, color, or free-text keywords), you should consider syncing data
+to \textbf{Amazon OpenSearch} to process them rather than relying solely
+on DynamoDB.
+
+\vspace{0.5em}\noindent\textbf{Step 1. Create a table in the
+console}\par
+
+Do one by hand first to get familiar with the interface:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Open the
+  \href{https://ap-southeast-1.console.aws.amazon.com/dynamodbv2/home?region=ap-southeast-1}{DynamoDB
+  console}
+\item
+  Choose \textbf{Create table}
+\item
+  Fill in:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{Table name}: \texttt{Products}
+  \item
+    \textbf{Partition key}: \texttt{id}, type \textbf{String}
+  \item
+    Leave Sort key empty
+  \item
+    \textbf{Table settings}: choose \textbf{Customize settings}
+  \item
+    \textbf{Table class}: DynamoDB Standard
+  \item
+    \textbf{Capacity mode}: \textbf{On-demand}
+  \end{itemize}
+\item
+  Choose \textbf{Create table}
+\end{enumerate}
+
+\begin{figure}
+\centering
+\pandocbounded{\includegraphics[keepaspectratio,alt={Create table}]{5-Workshop/5.4/create-table.png}}
+\caption{Create table}
+\end{figure}
+
+\textbf{On-demand} means you pay for actual reads and writes rather than
+pre-provisioned capacity. For a project with unknown traffic this is the
+safe choice: you neither overpay nor get throttled.
+
+\vspace{0.5em}\noindent\textbf{Step 2. Create the remaining seven tables via
+CLI}\par
+
+Creating seven tables by hand is tedious. Use this instead:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ControlFlowTok{for}\NormalTok{ T }\KeywordTok{in}\NormalTok{ Categories Users Sessions Carts Vouchers}\KeywordTok{;} \ControlFlowTok{do}
+  \ControlFlowTok{case} \VariableTok{$T} \KeywordTok{in}
+    \SpecialStringTok{Sessions}\KeywordTok{)} \VariableTok{K}\OperatorTok{=}\NormalTok{token }\ControlFlowTok{;;}
+    \SpecialStringTok{Carts}\KeywordTok{)}    \VariableTok{K}\OperatorTok{=}\NormalTok{userId }\ControlFlowTok{;;}
+    \SpecialStringTok{Vouchers}\KeywordTok{)} \VariableTok{K}\OperatorTok{=}\NormalTok{code }\ControlFlowTok{;;}
+    \PreprocessorTok{*}\KeywordTok{)}        \VariableTok{K}\OperatorTok{=}\NormalTok{id }\ControlFlowTok{;;}
+  \ControlFlowTok{esac}
+  \ExtensionTok{aws}\NormalTok{ dynamodb create{-}table }\AttributeTok{{-}{-}table{-}name} \VariableTok{$T} \DataTypeTok{\textbackslash{}}
+    \AttributeTok{{-}{-}attribute{-}definitions}\NormalTok{ AttributeName=}\VariableTok{$K}\NormalTok{,AttributeType=S }\DataTypeTok{\textbackslash{}}
+    \AttributeTok{{-}{-}key{-}schema}\NormalTok{ AttributeName=}\VariableTok{$K}\NormalTok{,KeyType=HASH }\DataTypeTok{\textbackslash{}}
+    \AttributeTok{{-}{-}billing{-}mode}\NormalTok{ PAY\_PER\_REQUEST}
+\ControlFlowTok{done}
+\end{Highlighting}
+\end{Shaded}
+
+The two composite-key tables are created separately:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{aws}\NormalTok{ dynamodb create{-}table }\AttributeTok{{-}{-}table{-}name}\NormalTok{ Reviews }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}attribute{-}definitions}\NormalTok{ AttributeName=productId,AttributeType=S AttributeName=id,AttributeType=S }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}key{-}schema}\NormalTok{ AttributeName=productId,KeyType=HASH AttributeName=id,KeyType=RANGE }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}billing{-}mode}\NormalTok{ PAY\_PER\_REQUEST}
+
+\ExtensionTok{aws}\NormalTok{ dynamodb create{-}table }\AttributeTok{{-}{-}table{-}name}\NormalTok{ Orders }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}attribute{-}definitions}\NormalTok{ AttributeName=userId,AttributeType=S AttributeName=id,AttributeType=S }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}key{-}schema}\NormalTok{ AttributeName=userId,KeyType=HASH AttributeName=id,KeyType=RANGE }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}billing{-}mode}\NormalTok{ PAY\_PER\_REQUEST}
+\end{Highlighting}
+\end{Shaded}
+
+\vspace{0.5em}\noindent\textbf{Step 3. Verify}\par
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{aws}\NormalTok{ dynamodb list{-}tables}
+\end{Highlighting}
+\end{Shaded}
+
+The output should list all 8 tables.
+
+\vspace{0.5em}\noindent\textbf{Step 4. Seed sample data}\par
+
+Load sample categories and products so the system has something to
+display:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\BuiltInTok{cd}\NormalTok{ backend}
+\ExtensionTok{node}\NormalTok{ scripts/seed{-}data.mjs}
+\end{Highlighting}
+\end{Shaded}
+
+Check the record count in the Products table:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{aws}\NormalTok{ dynamodb scan }\AttributeTok{{-}{-}table{-}name}\NormalTok{ Products }\AttributeTok{{-}{-}select}\NormalTok{ COUNT}
+\end{Highlighting}
+\end{Shaded}

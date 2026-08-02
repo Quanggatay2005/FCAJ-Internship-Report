@@ -1,0 +1,126 @@
+Individual components working does not mean the system works. This
+section verifies the whole path from browser to model.
+
+\vspace{0.5em}\noindent\textbf{Step 1. Test each layer via
+CLI}\par
+
+Work from the inside out; stop and fix at whichever layer fails.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Data layer}
+\ExtensionTok{aws}\NormalTok{ dynamodb scan }\AttributeTok{{-}{-}table{-}name}\NormalTok{ Products }\AttributeTok{{-}{-}select}\NormalTok{ COUNT}
+
+\CommentTok{\# API layer}
+\ExtensionTok{curl}\NormalTok{ https://xxxxx.execute{-}api.ap{-}southeast{-}1.amazonaws.com/products}
+
+\CommentTok{\# ML layer}
+\ExtensionTok{aws}\NormalTok{ personalize{-}runtime get{-}recommendations }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}campaign{-}arn} \OperatorTok{\textless{}}\NormalTok{CAMPAIGN{-}ARN}\OperatorTok{\textgreater{}}\NormalTok{ {-}{-}user{-}id user{-}001 }\AttributeTok{{-}{-}num{-}results}\NormalTok{ 5}
+
+\CommentTok{\# Recommendations through the API}
+\ExtensionTok{curl} \StringTok{"https://xxxxx.execute{-}api.ap{-}southeast{-}1.amazonaws.com/recommendations?userId=user{-}001"}
+\end{Highlighting}
+\end{Shaded}
+
+\vspace{0.5em}\noindent\textbf{Step 2. Verify recommendations are actually
+personalised}\par
+
+This is the single most important check in the system. Call it with two
+different users:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{curl} \StringTok{"https://.../recommendations?userId=user{-}001"}
+\ExtensionTok{curl} \StringTok{"https://.../recommendations?userId=user{-}150"}
+\end{Highlighting}
+\end{Shaded}
+
+The two results \textbf{must differ}. If they are identical, the model
+is not personalising and is only returning a general popularity list.
+
+\vspace{0.5em}\noindent\textbf{Step 3. Verify recommendation order is
+preserved}\par
+
+This is a subtle bug that produces no error message at all.
+
+Personalize returns a ranked list. Lambda then queries DynamoDB to fetch
+full details for each product. The catch: \textbf{DynamoDB does not
+guarantee results come back in the order the keys were passed in}.
+
+If the code does not re-sort, the ranking the model computed is lost,
+and the best-matching product can end up at the bottom of the list.
+
+How to check: compare the order of \texttt{itemId} values from
+\texttt{get-recommendations} with the order of products returned by the
+API. They must match.
+
+\vspace{0.5em}\noindent\textbf{Step 4. Test in the
+browser}\par
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Open the CloudFront address
+\item
+  Register a new account
+\item
+  Browse a few products and add them to the cart
+\item
+  Place an order
+\item
+  Go to the account page and check the order appears
+\item
+  Return to the home page and check the recommendation block renders
+\end{enumerate}
+
+Press \textbf{F12} to open Developer Tools and check the
+\textbf{Network} tab to confirm API calls return 200. If you see CORS
+errors in the Console tab, go back to section 5.5 and check the
+configuration.
+
+\vspace{0.5em}\noindent\textbf{Step 5. Test order price
+security}\par
+
+The server must recalculate totals itself rather than trusting the
+browser. Try submitting an order with a tampered price:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{curl} \AttributeTok{{-}X}\NormalTok{ POST https://xxxxx.execute{-}api.ap{-}southeast{-}1.amazonaws.com/orders }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}H} \StringTok{"Content{-}Type: application/json"} \DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}H} \StringTok{"Authorization: \textless{}YOUR{-}TOKEN\textgreater{}"} \DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}d} \StringTok{\textquotesingle{}\{"items":[\{"productId":"prod{-}001","quantity":1,"price":1\}]\}\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+The created order must carry the \textbf{real price} from DynamoDB, not
+the price of 1 that was submitted. If the order records a price of 1,
+you have a serious vulnerability.
+
+\vspace{0.5em}\noindent\textbf{Final checklist}\par
+
+{\def\LTcaptype{none} % do not increment counter
+\begingroup
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+Item & Expected result \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Home page loads over CloudFront & Full interface renders \\
+Direct access to the S3 bucket & Denied, 403 \\
+API returns the product list & JSON with 100 products \\
+Recommendations for two different users & Two different lists \\
+Recommendation order & Matches what Personalize returned \\
+Order with tampered price & Server uses the real price \\
+Opening a sub-path like \texttt{/cart} directly & Page loads, no 403 \\
+CloudWatch logs & An entry for every invocation \\
+\end{longtable}
+\endgroup
+}

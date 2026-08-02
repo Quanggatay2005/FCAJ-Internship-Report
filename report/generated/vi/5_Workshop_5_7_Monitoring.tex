@@ -1,0 +1,140 @@
+Hệ thống chạy được không có nghĩa là xong. Nếu Lambda bắt đầu lỗi lúc 2
+giờ sáng, bạn cần biết trước khi người dùng phàn nàn.
+
+\vspace{0.5em}\noindent\textbf{Bước 1. Xem log}\par
+
+Lambda tự động ghi log vào CloudWatch nhờ policy
+\texttt{AWSLambdaBasicExecutionRole} đã gán ở mục 5.5.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Mở
+  \href{https://ap-southeast-1.console.aws.amazon.com/cloudwatch/home?region=ap-southeast-1}{CloudWatch
+  console}
+\item
+  Chọn \textbf{Log groups}, tìm \texttt{/aws/lambda/fcj-recsys-api}
+\item
+  Mở log stream mới nhất
+\end{enumerate}
+
+Đây là nơi đầu tiên cần nhìn mỗi khi API trả về lỗi 500. Thông báo lỗi
+trả về cho người dùng thường bị rút gọn, còn stack trace đầy đủ nằm ở
+đây.
+
+\vspace{0.5em}\noindent\textbf{Bước 2. Tạo SNS topic nhận thông
+báo}\par
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{aws}\NormalTok{ sns create{-}topic }\AttributeTok{{-}{-}name}\NormalTok{ fcj{-}recsys{-}alerts}
+\end{Highlighting}
+\end{Shaded}
+
+Đăng ký email nhận cảnh báo:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{aws}\NormalTok{ sns subscribe }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}topic{-}arn} \OperatorTok{\textless{}}\NormalTok{TOPIC{-}ARN}\OperatorTok{\textgreater{}} \DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}protocol}\NormalTok{ email }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}notification{-}endpoint}\NormalTok{ email{-}cua{-}ban@example.com}
+\end{Highlighting}
+\end{Shaded}
+
+Mở hộp thư và bấm xác nhận đăng ký.
+
+\vspace{0.5em}\noindent\textbf{Bước 3. Tạo alarm cho tỉ lệ
+lỗi}\par
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Mở
+  \href{https://ap-southeast-1.console.aws.amazon.com/cloudwatch/home?region=ap-southeast-1}{CloudWatch
+  console}, chọn \textbf{Alarms} rồi \textbf{Create alarm}
+\item
+  Chọn \textbf{Select metric}, vào \textbf{Lambda} rồi \textbf{By
+  Function Name}
+\item
+  Tìm hàm \texttt{fcj-recsys-api}, chọn metric \textbf{Errors}, chọn
+  \textbf{Select metric}
+\item
+  Ở phần \textbf{Conditions}:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{Statistic}: Sum
+  \item
+    \textbf{Period}: 5 minutes
+  \item
+    \textbf{Threshold type}: Static
+  \item
+    \textbf{Whenever Errors is}: Greater than \texttt{5}
+  \end{itemize}
+\item
+  Chọn \textbf{Next}, ở phần thông báo chọn topic
+  \texttt{fcj-recsys-alerts}
+\item
+  Đặt tên alarm \texttt{fcj-lambda-errors}, chọn \textbf{Create alarm}
+\end{enumerate}
+
+\begin{figure}
+\centering
+\pandocbounded{\includegraphics[keepaspectratio,alt={Tạo alarm}]{5-Workshop/5.7/create-alarm.png}}
+\caption{Tạo alarm}
+\end{figure}
+
+\vspace{0.5em}\noindent\textbf{Bước 4. Tạo alarm cho độ
+trễ}\par
+
+Lặp lại các bước trên nhưng chọn metric \textbf{Duration}, thống kê
+\textbf{Average}, ngưỡng lớn hơn \texttt{3000} mili giây. Đặt tên
+\texttt{fcj-lambda-latency}.
+
+Độ trễ tăng thường là dấu hiệu sớm hơn lỗi. Khi Lambda chạy chậm dần,
+thường là do truy vấn DynamoDB không hiệu quả hoặc Personalize phản hồi
+chậm.
+
+\vspace{0.5em}\noindent\textbf{Bước 5. Đặt cảnh báo chi
+phí}\par
+
+Đây là thứ nhiều người bỏ qua và phải trả giá.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Mở
+  \href{https://console.aws.amazon.com/billing/home\#/budgets}{Billing
+  console}
+\item
+  Chọn \textbf{Budgets} rồi \textbf{Create budget}
+\item
+  Chọn \textbf{Cost budget}, đặt ngưỡng phù hợp, ví dụ 10 USD mỗi tháng
+\item
+  Thêm cảnh báo khi đạt 80 phần trăm ngưỡng, điền email của bạn
+\end{enumerate}
+
+Personalize campaign tính phí theo giờ tồn tại. Nếu quên xoá sau khi
+hoàn thành, chi phí tích luỹ âm thầm. Cảnh báo ngân sách là lưới an toàn
+cho tình huống đó.
+
+\vspace{0.5em}\noindent\textbf{Kiểm tra alarm hoạt
+động}\par
+
+Gọi thử một đường dẫn không tồn tại nhiều lần để sinh lỗi:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ControlFlowTok{for}\NormalTok{ i }\KeywordTok{in} \DataTypeTok{\{}\DecValTok{1}\DataTypeTok{..}\DecValTok{10}\DataTypeTok{\}}\KeywordTok{;} \ControlFlowTok{do}
+  \ExtensionTok{curl} \AttributeTok{{-}s}\NormalTok{ https://xxxxx.execute{-}api.ap{-}southeast{-}1.amazonaws.com/khong{-}ton{-}tai }\OperatorTok{\textgreater{}}\NormalTok{ /dev/null}
+\ControlFlowTok{done}
+\end{Highlighting}
+\end{Shaded}
+
+Sau vài phút, alarm phải chuyển sang trạng thái \textbf{In alarm} và bạn
+nhận được email.

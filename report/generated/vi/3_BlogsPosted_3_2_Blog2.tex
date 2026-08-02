@@ -1,0 +1,171 @@
+\vspace{0.5em}\noindent\textbf{TỪ ZERO ĐẾN ZERO-DOWNTIME: DEVOPS \& CI/CD TRÊN
+AWS}\par
+
+Khi bắt đầu DevOps trên AWS, mình từng nghĩ CI/CD chỉ là viết script tự
+động đẩy code lên máy chủ. Nhưng các hệ thống Production thực tế đã dạy
+rằng DevOps thực chất là về \textbf{Độ tin cậy}, \textbf{Bảo mật} và
+\textbf{Tốc độ}.
+
+\vspace{0.5em}\noindent\textbf{3 Bài Học Quan Trọng}\par
+
+\vspace{0.5em}\noindent\textbf{1. Infrastructure as Code (IaC): Nói Không Với
+ClickOps}\par
+
+\begin{itemize}
+\tightlist
+\item
+  Bấm tay trên console lúc đầu nhanh nhưng là ác mộng khi tái lập môi
+  trường hoặc audit lỗi.
+\item
+  \textbf{Dùng Terraform hoặc AWS CDK}. Coi hạ tầng như code. Mọi thay
+  đổi qua Pull Request \(\rightarrow\) Plan \(\rightarrow\) Code Review.
+\end{itemize}
+
+\vspace{0.5em}\noindent\textbf{2. Shift-Left Security Trong CI/CD
+Pipeline}\par
+
+\begin{itemize}
+\tightlist
+\item
+  Đừng đợi lên Production mới quét lỗ hổng.
+\item
+  \textbf{Tích hợp bảo mật sớm:}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Quét file IaC với Checkov/TFLint
+  \item
+    Quét container image với Amazon ECR Image Scanning
+  \item
+    Quản lý secrets tập trung với AWS Secrets Manager (không hardcode)
+  \end{itemize}
+\end{itemize}
+
+\vspace{0.5em}\noindent\textbf{3. Blue/Green \& Canary Deployments Cho
+Zero-Downtime}\par
+
+\begin{itemize}
+\tightlist
+\item
+  Deploy kiểu in-place dễ gây gián đoạn và lỗi 502.
+\item
+  \textbf{Dùng AWS CodeDeploy:}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{Blue/Green}: Dựng môi trường song song, test rồi chuyển
+    traffic
+  \item
+    \textbf{Canary}: Chuyển 10\% traffic sang bản mới, theo dõi
+    CloudWatch Metrics rồi rollout 100\%
+  \end{itemize}
+\end{itemize}
+
+\vspace{0.5em}\noindent\textbf{Kiến Trúc Pipeline Chi
+Tiết}\par
+
+Dưới đây là luồng CI/CD đã được áp dụng trong thực tế:
+
+\textbf{Bước 1: Developer commit code lên GitHub}
+
+Khi lập trình viên đẩy code lên repository, đây là điểm khởi đầu của
+toàn bộ pipeline.
+
+\textbf{Bước 2: AWS CodePipeline phát hiện thay đổi và kích hoạt
+pipeline}
+
+CodePipeline liên tục theo dõi repository. Khi có commit mới, pipeline
+tự động được kích hoạt mà không cần can thiệp thủ công.
+
+\textbf{Bước 3: AWS CodeBuild chạy Unit Tests}
+
+Kiểm tra chất lượng code bằng các bài test tự động. Nếu test thất bại,
+pipeline dừng lại ngay để tránh deploy code lỗi.
+
+\textbf{Bước 4: CodeBuild chạy Security Scan}
+
+Quét mã nguồn và các dependency để phát hiện lỗ hổng bảo mật. Phát hiện
+sớm giúp giảm chi phí sửa lỗi so với khi đã lên Production.
+
+\textbf{Bước 5: Build container image và push lên Amazon ECR}
+
+Tạo Docker image từ source code, sau đó đẩy lên Amazon Elastic Container
+Registry để lưu trữ và quản lý các phiên bản image.
+
+\textbf{Bước 6: ECR tự động quét image}
+
+Ngay khi image được push lên, ECR tự động quét để phát hiện CVE trong
+các layer của image. Kết quả quét được ghi lại để đánh giá trước khi
+triển khai.
+
+\textbf{Bước 7: CodeDeploy (hoặc Helm) triển khai lên Amazon EKS}
+
+Image được triển khai lên Kubernetes cluster. Tùy vào cách thiết lập, có
+thể dùng CodeDeploy tích hợp sẵn với EKS hoặc dùng Helm để quản lý ứng
+dụng dạng charts.
+
+\textbf{Bước 8: Áp dụng chiến lược Blue/Green hoặc Canary}
+
+Thay vì deploy trực tiếp lên production, pipeline sử dụng một trong hai
+chiến lược:
+
+\begin{itemize}
+\tightlist
+\item
+  Blue/Green: Tạo bản Green (mới) song song với bản Blue (hiện tại). Sau
+  khi test kỹ trên bản Green, traffic được chuyển từ Blue sang Green.
+\item
+  Canary: Chuyển một phần nhỏ traffic (ví dụ 10\%) sang bản mới, theo
+  dõi các chỉ số trước khi chuyển toàn bộ.
+\end{itemize}
+
+\textbf{Bước 9: Theo dõi metrics trên CloudWatch và tự động rollback}
+
+Trong suốt quá trình deploy, CloudWatch theo dõi các chỉ số quan trọng
+như tỷ lệ lỗi, thời gian phản hồi. Nếu phát hiện bất thường, pipeline tự
+động rollback về bản cũ để giảm thiểu tác động.
+
+\vspace{0.5em}\noindent\textbf{Giải thích từng thành
+phần:}\par
+
+\textbf{GitHub:} Nơi lưu trữ source code, tích hợp sẵn với CodePipeline.
+
+\textbf{AWS CodePipeline:} Dịch vụ orchestration CI/CD, điều phối toàn
+bộ luồng từ build đến deploy.
+
+\textbf{AWS CodeBuild:} Dịch vụ build serverless, thực hiện test,
+security scan và build image.
+
+\textbf{Amazon ECR:} Registry container image, tích hợp quét CVE tự
+động.
+
+\textbf{AWS CodeDeploy / Helm:} Công cụ triển khai với các chiến lược
+Zero-Downtime.
+
+\textbf{Amazon EKS:} Kubernetes cluster nơi ứng dụng chạy.
+
+\vspace{0.5em}\noindent\textbf{Kết quả đạt
+được:}\par
+
+\begin{itemize}
+\tightlist
+\item
+  Thời gian deploy giảm từ 30 phút xuống dưới 4 phút
+\item
+  Phát hiện sớm lỗ hổng bảo mật ngay từ khâu build
+\item
+  Triển khai không downtime nhờ Blue/Green và Canary
+\item
+  Tự động rollback nếu có vấn đề sau deploy
+\end{itemize}
+
+\vspace{0.5em}\noindent\textbf{Điểm Quan Trọng}\par
+
+Công cụ chỉ chiếm 20\%. 80\% còn lại là \textbf{Thiết kế Pipeline} và
+văn hóa \textbf{Release nhỏ, liên tục}.
+
+\textbf{Bài viết gốc:}
+\href{https://www.facebook.com/groups/awsstudygroupfcj/permalink/2229176364513990/?rdid=aT7nNGRCmytCuj4K\#}{Facebook
+AWS Study Group FCJ}

@@ -6,6 +6,8 @@ chapter : false
 pre : " <b> 5.2 </b> "
 ---
 
+#### Link Github dự án
+Link Github: https://github.com/Tritapcode-K23-BKU/ecommerce-recsys-aws
 #### Yêu cầu
 
 | Mục | Chi tiết |

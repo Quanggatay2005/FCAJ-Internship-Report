@@ -1,0 +1,165 @@
+Làm phần này \textbf{ngay sau khi hoàn thành workshop}. Personalize
+campaign tính phí theo giờ tồn tại, quên xoá là hoá đơn tăng âm thầm
+từng ngày.
+
+\vspace{0.5em}\noindent\textbf{Thứ tự xoá}\par
+
+Thứ tự quan trọng vì các tài nguyên phụ thuộc lẫn nhau. Xoá theo đúng
+danh sách dưới, từ tốn tiền nhất tới ít tốn nhất.
+
+\vspace{0.5em}\noindent\textbf{Bước 1. Xoá campaign --- ưu tiên cao
+nhất}\par
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{aws}\NormalTok{ personalize delete{-}campaign }\AttributeTok{{-}{-}campaign{-}arn} \OperatorTok{\textless{}}\NormalTok{CAMPAIGN{-}ARN}\OperatorTok{\textgreater{}}
+\end{Highlighting}
+\end{Shaded}
+
+Hoặc trên console: \textbf{Personalize} \(\rightarrow\)
+\textbf{Campaigns} \(\rightarrow\) chọn campaign \(\rightarrow\)
+\textbf{Delete}.
+
+Chờ trạng thái chuyển sang \textbf{Delete pending} rồi biến mất khỏi
+danh sách.
+
+\vspace{0.5em}\noindent\textbf{Bước 2. Xoá solution và dataset
+group}\par
+
+Phải xoá theo đúng thứ tự này, nếu không sẽ báo lỗi phụ thuộc:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Xoá solution trước}
+\ExtensionTok{aws}\NormalTok{ personalize delete{-}solution }\AttributeTok{{-}{-}solution{-}arn} \OperatorTok{\textless{}}\NormalTok{SOLUTION{-}ARN}\OperatorTok{\textgreater{}}
+
+\CommentTok{\# Đợi solution biến mất rồi xoá dataset}
+\ExtensionTok{aws}\NormalTok{ personalize delete{-}dataset }\AttributeTok{{-}{-}dataset{-}arn} \OperatorTok{\textless{}}\NormalTok{DATASET{-}ARN}\OperatorTok{\textgreater{}}
+
+\CommentTok{\# Cuối cùng xoá dataset group}
+\ExtensionTok{aws}\NormalTok{ personalize delete{-}dataset{-}group }\AttributeTok{{-}{-}dataset{-}group{-}arn} \OperatorTok{\textless{}}\NormalTok{DSG{-}ARN}\OperatorTok{\textgreater{}}
+\end{Highlighting}
+\end{Shaded}
+
+Nếu solution có bật \textbf{automatic retraining}, hãy tắt trước khi
+xoá, nếu không nó có thể khởi động một lần huấn luyện mới và phát sinh
+chi phí.
+
+\vspace{0.5em}\noindent\textbf{Bước 3. Xoá CloudFront
+distribution}\par
+
+CloudFront không cho xoá distribution đang bật, phải vô hiệu hoá trước.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Mở \href{https://console.aws.amazon.com/cloudfront/v4/home}{CloudFront
+  console}
+\item
+  Chọn distribution, chọn \textbf{Disable}
+\item
+  Chờ khoảng 15 phút cho trạng thái chuyển sang \textbf{Deployed}
+\item
+  Chọn lại distribution, chọn \textbf{Delete}
+\end{enumerate}
+
+\vspace{0.5em}\noindent\textbf{Bước 4. Xoá bucket
+S3}\par
+
+Bucket phải rỗng mới xoá được:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{aws}\NormalTok{ s3 rm s3://fcj{-}recsys{-}frontend{-}}\OperatorTok{\textless{}}\NormalTok{tên{-}bạn}\OperatorTok{\textgreater{}}\NormalTok{ {-}{-}recursive}
+\ExtensionTok{aws}\NormalTok{ s3 rb s3://fcj{-}recsys{-}frontend{-}}\OperatorTok{\textless{}}\NormalTok{tên{-}bạn}\OperatorTok{\textgreater{}}
+
+\ExtensionTok{aws}\NormalTok{ s3 rm s3://fcj{-}recsys{-}data{-}}\OperatorTok{\textless{}}\NormalTok{tên{-}bạn}\OperatorTok{\textgreater{}}\NormalTok{ {-}{-}recursive}
+\ExtensionTok{aws}\NormalTok{ s3 rb s3://fcj{-}recsys{-}data{-}}\OperatorTok{\textless{}}\NormalTok{tên{-}bạn}\OperatorTok{\textgreater{}}
+\end{Highlighting}
+\end{Shaded}
+
+\vspace{0.5em}\noindent\textbf{Bước 5. Xoá API Gateway và
+Lambda}\par
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{aws}\NormalTok{ apigatewayv2 delete{-}api }\AttributeTok{{-}{-}api{-}id} \OperatorTok{\textless{}}\NormalTok{API{-}ID}\OperatorTok{\textgreater{}}
+\ExtensionTok{aws}\NormalTok{ lambda delete{-}function }\AttributeTok{{-}{-}function{-}name}\NormalTok{ fcj{-}recsys{-}api}
+\end{Highlighting}
+\end{Shaded}
+
+\vspace{0.5em}\noindent\textbf{Bước 6. Xoá bảng
+DynamoDB}\par
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ControlFlowTok{for}\NormalTok{ T }\KeywordTok{in}\NormalTok{ Products Categories Users Sessions Carts Vouchers Reviews Orders}\KeywordTok{;} \ControlFlowTok{do}
+  \ExtensionTok{aws}\NormalTok{ dynamodb delete{-}table }\AttributeTok{{-}{-}table{-}name} \VariableTok{$T}
+\ControlFlowTok{done}
+\end{Highlighting}
+\end{Shaded}
+
+\vspace{0.5em}\noindent\textbf{Bước 7. Xoá IAM role và
+alarm}\par
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{aws}\NormalTok{ iam delete{-}role{-}policy }\AttributeTok{{-}{-}role{-}name}\NormalTok{ fcj{-}recsys{-}lambda{-}role }\AttributeTok{{-}{-}policy{-}name}\NormalTok{ fcj{-}recsys{-}lambda{-}policy}
+\ExtensionTok{aws}\NormalTok{ iam detach{-}role{-}policy }\AttributeTok{{-}{-}role{-}name}\NormalTok{ fcj{-}recsys{-}lambda{-}role }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}policy{-}arn}\NormalTok{ arn:aws:iam::aws:policy/service{-}role/AWSLambdaBasicExecutionRole}
+\ExtensionTok{aws}\NormalTok{ iam delete{-}role }\AttributeTok{{-}{-}role{-}name}\NormalTok{ fcj{-}recsys{-}lambda{-}role}
+
+\ExtensionTok{aws}\NormalTok{ cloudwatch delete{-}alarms }\AttributeTok{{-}{-}alarm{-}names}\NormalTok{ fcj{-}lambda{-}errors fcj{-}lambda{-}latency}
+\end{Highlighting}
+\end{Shaded}
+
+\vspace{0.5em}\noindent\textbf{Bước 8. Rà soát lần
+cuối}\par
+
+Đừng tin vào trí nhớ. Kiểm tra lại bằng Billing console:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Mở \href{https://console.aws.amazon.com/billing/home}{Billing console}
+\item
+  Chọn \textbf{Bills}, xem có dịch vụ nào còn phát sinh chi phí không
+\item
+  Kiểm tra thêm bằng
+  \href{https://console.aws.amazon.com/resource-groups/}{Resource
+  Groups} để tìm tài nguyên còn sót
+\end{enumerate}
+
+Giữ lại \textbf{CloudWatch log group} cũng được, log rất rẻ và có thể
+hữu ích khi bạn cần xem lại. Nhưng nếu muốn sạch hoàn toàn thì xoá luôn
+ở CloudWatch console.
+
+\vspace{0.5em}\noindent\textbf{Bảng kiểm dọn
+dẹp}\par
+
+{\def\LTcaptype{none} % do not increment counter
+\begingroup
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+Tài nguyên & Đã xoá \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Personalize campaign & \(\square\) \\
+Personalize solution và dataset group & \(\square\) \\
+CloudFront distribution & \(\square\) \\
+Hai bucket S3 & \(\square\) \\
+API Gateway & \(\square\) \\
+Hàm Lambda & \(\square\) \\
+Tám bảng DynamoDB & \(\square\) \\
+IAM role & \(\square\) \\
+CloudWatch alarm & \(\square\) \\
+\end{longtable}
+\endgroup
+}

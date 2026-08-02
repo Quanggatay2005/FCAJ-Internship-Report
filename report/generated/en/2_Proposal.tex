@@ -1,0 +1,389 @@
+\vspace{0.5em}\noindent\textbf{E-Commerce Product Recommendation System on
+AWS}\par
+
+\vspace{0.5em}\noindent\textbf{A Personalised Recommendation and Visual Search E-Commerce
+Platform Built on
+AWS}\par
+
+\vspace{0.5em}\noindent\textbf{1. Executive Summary}\par
+
+This project aims to build and deploy a full-stack e-commerce platform
+equipped with a personalised recommendation engine and visual search
+capabilities. Designed as part of the \textbf{Machine Learning on AWS}
+course, the platform utilizes AWS Serverless architecture (API Gateway,
+AWS Lambda, DynamoDB, S3, CloudFront) alongside Amazon Personalize and
+CLIP-based vector embeddings to deliver tailored shopping experiences
+and robust e-commerce features.
+
+\vspace{0.5em}\noindent\textbf{2. Problem Statement}\par
+
+\vspace{0.5em}\noindent\textbf{What's the Problem?}\par
+
+Traditional e-commerce platforms often lack real-time personalisation,
+resulting in lower customer engagement and conversion rates.
+Furthermore, searching for products using text keywords can be limiting
+when users only have visual references. High operational overhead and
+infrastructure management also pose challenges for scaling traditional
+monolithic e-commerce applications.
+
+\vspace{0.5em}\noindent\textbf{The Solution}\par
+
+The platform addresses these challenges by deploying a complete
+e-commerce solution on AWS Serverless infrastructure:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Personalised Recommendations:} Powered by Amazon Personalize
+  (\texttt{aws-user-personalization} recipe) to show a ``Recommended for
+  You'' section on the homepage.
+\item
+  \textbf{Visual Search:} Implemented using a CLIP model
+  (\texttt{@xenova/transformers}) with cosine similarity for image-based
+  product discovery.
+\item
+  \textbf{Core E-Commerce Suite:} Full support for browsing, filtering,
+  account management, cart operations, vouchers, checkout (COD / Bank
+  Transfer), and product reviews.
+\item
+  \textbf{Serverless Architecture:} Utilizes React (Vite) hosted on S3
+  and distributed via CloudFront, Node.js 20 Lambda functions via HTTP
+  API Gateway, and DynamoDB (8 tables) for on-demand database
+  operations.
+\end{itemize}
+
+\vspace{0.5em}\noindent\textbf{Benefits and Return on
+Investment}\par
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Enhanced Customer Engagement:} Personalised recommendations
+  improve product discovery and conversion rates.
+\item
+  \textbf{Cost Efficiency:} Serverless pay-per-use architecture
+  eliminates idle server costs; static assets are cached at the edge via
+  CloudFront.
+\item
+  \textbf{Scalability \& Maintenance:} DynamoDB on-demand capacity and
+  AWS Lambda handle variable traffic seamlessly without manual server
+  provisioning.
+\end{itemize}
+
+\vspace{0.5em}\noindent\textbf{3. Solution Architecture}\par
+
+The platform is built on a serverless microservices-like architecture on
+AWS:
+\pandocbounded{\includegraphics[keepaspectratio,alt={Picture discription}]{5-Workshop/architecture.jpg}}
+
+\vspace{0.5em}\noindent\textbf{AWS Services \& Technologies
+Used}\par
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Frontend:} React 18, Vite, Redux Toolkit, Tailwind CSS hosted
+  on Amazon S3 and distributed via CloudFront.
+\item
+  \textbf{API Gateway:} HTTP API routing 22 routes to a single AWS
+  Lambda function.
+\item
+  \textbf{AWS Lambda:} \texttt{fcj-api} (Node.js 20) handling business
+  logic, authentication, and database operations.
+\item
+  \textbf{Amazon DynamoDB:} On-demand capacity mode with 8 tables:
+  \texttt{Products}, \texttt{Categories}, \texttt{Users},
+  \texttt{Sessions}, \texttt{Carts}, \texttt{Vouchers},
+  \texttt{Reviews}, \texttt{Orders}.
+\item
+  \textbf{Amazon Personalize:} Campaign utilizing
+  \texttt{aws-user-personalization} recipe to serve personalized product
+  lists.
+\item
+  \textbf{Visual Search Engine:} CLIP model
+  (\texttt{@xenova/transformers}) + cosine similarity running locally
+  due to Lambda package size constraints.
+\end{itemize}
+
+\vspace{0.5em}\noindent\textbf{Component Design}\par
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Frontend Hosting:} S3 bucket stores compiled static assets;
+  CloudFront provides CDN caching and secure HTTPS access.
+\item
+  \textbf{Business API:} Lambda processes request payloads, handles
+  password hashing via \texttt{scrypt}, manages token sessions, and
+  interacts with DynamoDB.
+\item
+  \textbf{Recommendation Pipeline:} Lambda queries the Amazon
+  Personalize Campaign endpoint to retrieve tailored product IDs for
+  logged-in users.
+\item
+  \textbf{Image Search Pipeline:} Vectors generated from product images
+  are cached in \texttt{vector-cache.json} and matched against user
+  input image URLs via cosine similarity.
+\end{itemize}
+
+\vspace{0.5em}\noindent\textbf{4. Technical
+Implementation}\par
+
+\textbf{Implementation Phases}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Infrastructure \& Database Setup:} DDL/Schema design for 8
+  DynamoDB tables; configuring S3, CloudFront, API Gateway, and IAM
+  execution roles.
+\item
+  \textbf{Backend \& Frontend Development:} Writing 22 API routes in
+  \texttt{backend/index.mjs}, creating React components, and integrating
+  state management with Redux Toolkit.
+\item
+  \textbf{ML \& AI Integration:} Preparing interaction datasets
+  (\texttt{ml\_recommendation\_dataset.csv}), training Amazon
+  Personalize models, and embedding CLIP visual search.
+\item
+  \textbf{Testing, Deployment \& Evaluation:} Running Playwright
+  end-to-end automated tests, deploying code to Lambda \& S3/CloudFront,
+  and evaluating model metrics (v1 vs.~v2 dataset iterations).
+\end{enumerate}
+
+\textbf{Technical Requirements}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Node.js Environment:} Node.js 20+ required for development and
+  runtime execution.
+\item
+  \textbf{AWS Credentials \& Permissions:} IAM user/role with read/write
+  access to 8 DynamoDB tables and invoke access to Amazon Personalize
+  campaign.
+\item
+  \textbf{Security:} Strict separation of environment variables
+  (\texttt{.env}), passwords hashed with \texttt{scrypt} and compared
+  via \texttt{timingSafeEqual}, S3 bucket kept private with CloudFront
+  OAC.
+\end{itemize}
+
+\vspace{0.5em}\noindent\textbf{5. Timeline \& Milestones}\par
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Phase 1: Architecture \& Data Engineering}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Design AWS architecture and IAM roles.
+  \item
+    Build synthetic interaction data generation pipelines (handling
+    power-law distribution, conversion funnels).
+  \end{itemize}
+\item
+  \textbf{Phase 2: Core Development}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Implement 22 API routes in Lambda (\texttt{backend/index.mjs}).
+  \item
+    Build React frontend components (Catalog, Product Details, Cart,
+    Checkout, User Account).
+  \end{itemize}
+\item
+  \textbf{Phase 3: Machine Learning \& Personalization}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    Train and deploy Amazon Personalize campaign
+    (\texttt{aws-user-personalization}).
+  \item
+    Implement CLIP model visual search and vector caching.
+  \end{itemize}
+\item
+  \textbf{Phase 4: Integration, Testing \& Deployment}
+
+  \begin{itemize}
+  \tightlist
+  \item
+    End-to-end Playwright automated test scripts for checkout flows.
+  \item
+    Deploy frontend to S3/CloudFront and backend to AWS Lambda.
+  \end{itemize}
+\end{itemize}
+
+\vspace{0.5em}\noindent\textbf{6. Budget Estimation \& Model
+Metrics}\par
+
+\textbf{Estimated Monthly AWS Cost (Low-Traffic / Course Project Scale)}
+
+{\def\LTcaptype{none} % do not increment counter
+\begingroup
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3621}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.4138}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2241}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+AWS Service
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Usage Assumption
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Estimated Cost (USD/month)
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{AWS Lambda} (\texttt{fcj-api}) & \textasciitilde1M invocations,
+512MB, \textasciitilde200ms avg & \$0.20 -- \$1.00 \\
+\textbf{API Gateway (HTTP API)} & \textasciitilde1M requests &
+\textasciitilde\$1.00 \\
+\textbf{Amazon DynamoDB} (8 tables, On-demand) & \textasciitilde1M
+read/write request units & \$5 -- \$10 \\
+\textbf{Amazon S3} (frontend hosting) & \textasciitilde5 GB storage +
+PUT/GET requests & \textasciitilde\$0.15 \\
+\textbf{Amazon CloudFront} & \textasciitilde50 GB data transfer out &
+\textasciitilde\$4.25 \\
+\textbf{Amazon Personalize (Campaign)} & 1 campaign, minimum TPS,
+running 24/7 (\textasciitilde730 hrs) & \textbf{\$150 -- \$220} \\
+\textbf{Amazon Personalize (Solution Training)} & One-time/periodic
+retraining (\textasciitilde2--4 hrs/session) & \textasciitilde\$0.50 --
+\$1.00 per run \\
+\textbf{CloudWatch Logs \& Monitoring} & Basic logging tier &
+\textasciitilde\$1.00 \\
+\textbf{Total (steady-state, monthly)} & & \textbf{≈ \$160 -- \$240 /
+month} \\
+\end{longtable}
+\endgroup
+}
+
+\begin{quote}
+\textbf{Note:} Amazon Personalize's always-on Campaign is by far the
+dominant cost driver, since it charges an hourly minimum TPS rate
+regardless of actual traffic. For a course/demo project, this cost can
+be significantly reduced by deleting the Campaign when not actively
+demoing, or by only re-creating it during evaluation/testing windows.
+Lambda, API Gateway, DynamoDB, S3, and CloudFront costs remain minimal
+at this traffic scale thanks to the serverless pay-per-use pricing
+model.
+\end{quote}
+
+\textbf{Training \& Dataset Iteration Results} The interaction dataset
+was engineered to simulate realistic shopping behavior (conversion
+funnels, time-of-day dynamics, power-law distribution):
+
+{\def\LTcaptype{none} % do not increment counter
+\begingroup
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{longtable}[]{@{}lll@{}}
+\toprule\noalign{}
+Metric & Dataset v1 & Dataset v2 \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{Precision@5} & 0.0889 & 0.4348 \\
+\textbf{NDCG@10} & 0.1799 & 0.6512 \\
+\textbf{MRR@25} & 0.1216 & 0.7130 \\
+\textbf{Coverage} & 0.8218 & 0.9505 \\
+\end{longtable}
+\endgroup
+}
+
+\emph{Conclusion:} Input data quality significantly impacts model
+performance over algorithm selection.
+
+\vspace{0.5em}\noindent\textbf{7. Risk Assessment}\par
+
+\vspace{0.5em}\noindent\textbf{Risk Matrix}\par
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Data Feedback Loop Gap:} High impact, medium probability (User
+  interactions on web are not currently fed back automatically to
+  retrain the model).
+\item
+  \textbf{Package Size Limits:} Medium impact, high probability (CLIP
+  model exceeds Lambda limits, restricting image search to local
+  environments).
+\item
+  \textbf{CloudFront Cache Stale Content:} Low impact, high probability
+  (Requires mandatory invalidations \texttt{/*} upon new deployments).
+\item
+  \textbf{Database Bottleneck (Complex Queries):} Medium impact, high
+  probability (DynamoDB is not optimized for full-text search or complex
+  product filtering).
+\end{itemize}
+
+\vspace{0.5em}\noindent\textbf{Mitigation Strategies}\par
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Data Loop:} Plan automated data logging pipelines from
+  DynamoDB/S3 back into Amazon Personalize.
+\item
+  \textbf{Model Deployment:} Explore AWS ECS/Fargate or Sagemaker
+  Endpoints for hosting heavy machine learning models like CLIP.
+\item
+  \textbf{Deployment Automation:} Script deployment processes to include
+  automatic CloudFront cache invalidation.
+\item
+  \textbf{Search Optimization:} Integrate Amazon OpenSearch to handle
+  complex filtering and text search queries.
+\end{itemize}
+
+\vspace{0.5em}\noindent\textbf{8. Expected Outcomes}\par
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Technical Improvements:} A fully operational, serverless
+  e-commerce platform with automated E2E testing (Playwright) and
+  sub-second personal recommendations.
+\item
+  \textbf{Long-term Value:} A scalable foundation for machine learning
+  deployment on AWS that can be extended with closed-loop real-time
+  retraining and server-side visual search.
+\end{itemize}
+
+\vspace{0.5em}\noindent\textbf{9. Improvements and Next
+Steps}\par
+
+Based on operational reality and scaling requirements, several AWS
+services can be added to the system to optimize security, performance,
+and scalability:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Multi-layered Security:} Add AWS WAF in front of
+  CloudFront/API Gateway to mitigate Botnet/DDoS attacks. Delegate user
+  identity and authentication to Amazon Cognito.
+\item
+  \textbf{Microservices Architecture:} Deconstruct the current
+  monolithic Lambda into domain-specific independent services (User,
+  Product, Order) to reduce blast radius and cold start times.
+\item
+  \textbf{Query \& Search Optimization:} Integrate Amazon OpenSearch
+  alongside DynamoDB to fulfill complex product filtering and
+  text-search queries. Host the CLIP model on Amazon ECS or SageMaker.
+\item
+  \textbf{Real-time Feedback Loop:} Utilize Amazon Kinesis Data Streams
+  with Amazon Personalize Event Tracker to capture and ingest user
+  interaction data in real time.
+\end{itemize}

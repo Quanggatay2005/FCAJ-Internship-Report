@@ -1,0 +1,127 @@
+Từng thành phần chạy được không đảm bảo cả hệ thống chạy được. Phần này
+kiểm tra toàn luồng từ trình duyệt tới mô hình.
+
+\vspace{0.5em}\noindent\textbf{Bước 1. Kiểm tra từng lớp bằng
+CLI}\par
+
+Đi từ trong ra ngoài, lớp nào lỗi thì dừng ở đó mà sửa.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Lớp dữ liệu}
+\ExtensionTok{aws}\NormalTok{ dynamodb scan }\AttributeTok{{-}{-}table{-}name}\NormalTok{ Products }\AttributeTok{{-}{-}select}\NormalTok{ COUNT}
+
+\CommentTok{\# Lớp API}
+\ExtensionTok{curl}\NormalTok{ https://xxxxx.execute{-}api.ap{-}southeast{-}1.amazonaws.com/products}
+
+\CommentTok{\# Lớp học máy}
+\ExtensionTok{aws}\NormalTok{ personalize{-}runtime get{-}recommendations }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}{-}campaign{-}arn} \OperatorTok{\textless{}}\NormalTok{CAMPAIGN{-}ARN}\OperatorTok{\textgreater{}}\NormalTok{ {-}{-}user{-}id user{-}001 }\AttributeTok{{-}{-}num{-}results}\NormalTok{ 5}
+
+\CommentTok{\# Lớp gợi ý qua API}
+\ExtensionTok{curl} \StringTok{"https://xxxxx.execute{-}api.ap{-}southeast{-}1.amazonaws.com/recommendations?userId=user{-}001"}
+\end{Highlighting}
+\end{Shaded}
+
+\vspace{0.5em}\noindent\textbf{Bước 2. Kiểm tra gợi ý thực sự cá nhân
+hoá}\par
+
+Đây là phép thử quan trọng nhất của cả hệ thống. Gọi với hai người dùng
+khác nhau:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{curl} \StringTok{"https://.../recommendations?userId=user{-}001"}
+\ExtensionTok{curl} \StringTok{"https://.../recommendations?userId=user{-}150"}
+\end{Highlighting}
+\end{Shaded}
+
+Hai kết quả \textbf{phải khác nhau}. Nếu giống hệt, nghĩa là mô hình
+không cá nhân hoá mà chỉ trả về danh sách phổ biến chung.
+
+\vspace{0.5em}\noindent\textbf{Bước 3. Kiểm tra thứ tự gợi ý được giữ
+nguyên}\par
+
+Đây là lỗi tinh vi, không sinh ra thông báo lỗi nào.
+
+Personalize trả về danh sách đã xếp hạng. Lambda sau đó truy vấn
+DynamoDB để lấy thông tin đầy đủ của từng sản phẩm. Vấn đề:
+\textbf{DynamoDB không đảm bảo trả về theo đúng thứ tự khoá được truyền
+vào}.
+
+Nếu mã nguồn không sắp xếp lại, thứ hạng do mô hình tính toán sẽ bị mất,
+và sản phẩm phù hợp nhất có thể rơi xuống cuối danh sách.
+
+Cách kiểm tra: so sánh thứ tự \texttt{itemId} từ lệnh
+\texttt{get-recommendations} với thứ tự sản phẩm mà API trả về. Hai thứ
+tự phải trùng khớp.
+
+\vspace{0.5em}\noindent\textbf{Bước 4. Kiểm tra trên trình
+duyệt}\par
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Mở địa chỉ CloudFront
+\item
+  Đăng ký một tài khoản mới
+\item
+  Duyệt vài sản phẩm, thêm vào giỏ
+\item
+  Đặt hàng
+\item
+  Vào trang tài khoản xem đơn vừa đặt
+\item
+  Về trang chủ, kiểm tra khối gợi ý có hiển thị không
+\end{enumerate}
+
+Bấm \textbf{F12} mở Developer Tools, xem tab \textbf{Network} để chắc
+chắn các lời gọi API trả về mã 200. Nếu thấy lỗi CORS ở tab Console,
+quay lại mục 5.5 kiểm tra cấu hình.
+
+\vspace{0.5em}\noindent\textbf{Bước 5. Kiểm tra bảo mật giá đặt
+hàng}\par
+
+Máy chủ phải tự tính lại tổng tiền, không tin số liệu do trình duyệt gửi
+lên. Thử gửi một đơn hàng với giá bị sửa:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\ExtensionTok{curl} \AttributeTok{{-}X}\NormalTok{ POST https://xxxxx.execute{-}api.ap{-}southeast{-}1.amazonaws.com/orders }\DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}H} \StringTok{"Content{-}Type: application/json"} \DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}H} \StringTok{"Authorization: \textless{}TOKEN{-}CUA{-}BAN\textgreater{}"} \DataTypeTok{\textbackslash{}}
+  \AttributeTok{{-}d} \StringTok{\textquotesingle{}\{"items":[\{"productId":"prod{-}001","quantity":1,"price":1\}]\}\textquotesingle{}}
+\end{Highlighting}
+\end{Shaded}
+
+Đơn tạo ra phải mang \textbf{giá thật} lấy từ DynamoDB, không phải giá 1
+đồng gửi lên. Nếu đơn ghi nhận giá 1 đồng thì hệ thống có lỗ hổng nghiêm
+trọng.
+
+\vspace{0.5em}\noindent\textbf{Bảng kiểm cuối}\par
+
+{\def\LTcaptype{none} % do not increment counter
+\begingroup
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+Hạng mục & Kết quả mong đợi \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Trang chủ tải được qua CloudFront & Hiển thị đầy đủ giao diện \\
+Truy cập thẳng bucket S3 & Bị từ chối, mã 403 \\
+API trả về danh sách sản phẩm & JSON có 100 sản phẩm \\
+Gợi ý cho hai người dùng khác nhau & Hai danh sách khác nhau \\
+Thứ tự gợi ý & Trùng với thứ tự Personalize trả về \\
+Đặt hàng với giá bị sửa & Máy chủ dùng giá thật \\
+Mở thẳng đường dẫn con như \texttt{/cart} & Trang tải được, không lỗi
+403 \\
+CloudWatch log & Có bản ghi cho mỗi lần gọi \\
+\end{longtable}
+\endgroup
+}

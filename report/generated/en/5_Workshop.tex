@@ -1,0 +1,98 @@
+\vspace{0.5em}\noindent\textbf{Building a Serverless E-commerce Recommendation System on
+AWS}\par
+
+\vspace{0.5em}\noindent\textbf{Overview}\par
+
+In this workshop, you will build a complete e-commerce website with a
+personalized product recommendation system, deployed entirely on AWS
+using a \textbf{serverless} architecture.
+
+What sets this system apart from a typical online store is that every
+signed-in user sees a different list of recommended products, generated
+by an \textbf{Amazon Personalize} machine learning model based on
+browsing and purchase behaviour, rather than a fixed ranking by sales
+volume.
+
+By the end, you will have a system running live on the Internet at close
+to zero cost when there is no traffic.
+
+\vspace{0.5em}\noindent\textbf{What you will learn}\par
+
+\begin{itemize}
+\tightlist
+\item
+  Designing a serverless architecture that separates static content
+  delivery from dynamic data flow
+\item
+  Configuring CloudFront with Origin Access Control to protect an S3
+  bucket from direct access
+\item
+  Designing DynamoDB tables around access patterns, using composite keys
+  to avoid full table scans
+\item
+  Applying the principle of least privilege when creating IAM roles
+\item
+  Training and deploying a recommendation model with Amazon Personalize
+\item
+  Setting up alerting with CloudWatch Alarms
+\item
+  Cleaning up resources properly to avoid unexpected charges
+\end{itemize}
+
+\vspace{0.5em}\noindent\textbf{AWS services used}\par
+
+{\def\LTcaptype{none} % do not increment counter
+\begingroup
+\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Service
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Role in the system
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Amazon S3 & Stores static frontend files and the training dataset \\
+Amazon CloudFront & Delivers the frontend from edge locations, provides
+HTTPS \\
+Amazon API Gateway & Entry point for all API calls \\
+AWS Lambda & Runs the business logic \\
+Amazon DynamoDB & Stores product, user and order data \\
+Amazon Personalize & Trains and serves the recommendation model \\
+AWS IAM & Controls permissions between services \\
+Amazon CloudWatch & Logging and alerting \\
+\end{longtable}
+\endgroup
+}
+
+\vspace{0.5em}\noindent\textbf{Contents}\par
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \href{5.1-Overview/}{Overview and architecture}
+\item
+  \href{5.2-Prerequisite/}{Prerequisites}
+\item
+  \href{5.3-Frontend/}{Deploy the frontend layer}
+\item
+  \href{5.4-Database/}{Create the database}
+\item
+  \href{5.5-Backend/}{Deploy the API layer}
+\item
+  \href{5.6-Personalize/}{Build the recommendation engine}
+\item
+  \href{5.7-Monitoring/}{Monitoring and alerting}
+\item
+  \href{5.8-Testing/}{End-to-end testing}
+\item
+  \href{5.9-Cleanup/}{Clean up}
+\end{enumerate}
