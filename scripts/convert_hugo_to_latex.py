@@ -591,58 +591,7 @@ def preprocess_markdown(content, meta=None):
 # ---------------------------------------------------------------------------
 # Pandoc LaTeX conversion
 # ---------------------------------------------------------------------------
-def neutralize_body_headings(latex):
-    """Convert Pandoc headings to visual bold headings."""
-
-    heading_cmds = ["section", "subsection", "subsubsection", "paragraph", "subparagraph"]
-
-    # 1. Bỏ toàn bộ \hypertarget wrapper nhưng giữ nội dung bên trong.
-    # Pandoc thường sinh:
-    # \hypertarget{id}{%
-    # \section{Title}\label{id}}
-    latex = re.sub(
-        r"\\hypertarget\{[^{}]*\}\{\s*%?\s*",
-        "",
-        latex,
-        flags=re.DOTALL,
-    )
-
-    # Sau khi bỏ phần mở \hypertarget, thường sẽ dư "}" sau \label hoặc sau heading.
-    latex = re.sub(
-        r"(\\label\{[^{}]*\})\s*\}",
-        r"\1",
-        latex,
-        flags=re.DOTALL,
-    )
-
-    # 2. Remove labels.
-    latex = re.sub(r"\\label\{[^{}]*\}", "", latex)
-
-    # 3. Convert standalone headings thành text đậm.
-    for cmd in heading_cmds:
-        latex = re.sub(
-            rf"\\{cmd}\{{([^{{}}]*)\}}",
-            r"\\vspace{0.5em}\\noindent\\textbf{\1}\\par",
-            latex,
-            flags=re.DOTALL,
-        )
-
-    # 4. Safety net: nếu vẫn còn dạng hỏng:
-    # \hypertarget{id}{\vspace{0.5em}\noindent\textbf{Title}\par}
-    latex = re.sub(
-        r"\\hypertarget\{[^{}]*\}\{\s*(\\vspace\{0\.5em\}\\noindent\\textbf\{[^{}]*\}\\par)\s*\}",
-        r"\1",
-        latex,
-        flags=re.DOTALL,
-    )
-    latex = re.sub(
-        r"(\\vspace\{0\.5em\}\\noindent\\textbf\{[^{}]*\}\\par)\}",
-        r"\1",
-        latex,
-        flags=re.DOTALL,
-    )
-
-    return latex
+# (removed neutralize_body_headings to use Lua filter instead)
 
 def compact_longtables(latex):
     """Make Pandoc longtables more compact without modifying column specs."""
@@ -670,7 +619,7 @@ def compact_longtables(latex):
 def postprocess_latex(latex):
     # Do NOT replace Pandoc table column specs by regex.
     latex = re.sub(r"\\label\{[^}]+\}", "", latex)
-    latex = neutralize_body_headings(latex)
+    # (neutralize_body_headings removed)
     latex = compact_longtables(latex)
     return latex
 
@@ -693,6 +642,7 @@ def convert_to_latex(md_text, source_path=None):
                     "--top-level-division=section",
                     "--no-highlight",
                     "--lua-filter", LUA_FILTER,
+                    "--lua-filter", os.path.join("scripts", "remove_headings.lua"),
                     "-o", tmp_out,
                 ],
                 check=True,
