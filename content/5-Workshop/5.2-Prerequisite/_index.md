@@ -5,7 +5,8 @@ weight : 2
 chapter : false
 pre : " <b> 5.2 </b> "
 ---
-
+#### Link Github project
+Link Github: https://github.com/Tritapcode-K23-BKU/ecommerce-recsys-aws
 #### Requirements
 
 | Item | Details |
